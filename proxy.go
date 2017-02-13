@@ -8,13 +8,16 @@ import (
 	"strings"
 	"strconv"
 	"bytes"
+	"fmt"
 )
 
 const _DEFAULTLOG = "/var/log/go-proxy.log"
 
+var connections (chan string)
+
 func configureLogging() {
 	log.SetLevel(log.INFO)
-	log.SetLevel(log.DEBUG)
+	//log.SetLevel(log.DEBUG)
 
 	if err := log.OpenFile(_DEFAULTLOG, log.FLOG_APPEND, 0644); err != nil {
 		log.Fatalf("Unable to open log file : %s", err)
@@ -23,15 +26,15 @@ func configureLogging() {
 
 // Send required response to HTTPS Tunnelling request as per spec https://tools.ietf.org/html/draft-luotonen-ssl-tunneling-03
 func sendSSLTunnellingResponse(clientWriteBuffer *bufio.Writer) (err error) {
-	_, err = clientWriteBuffer.Write([]byte("HTTP/1.0 200 Connection established\r\nProxy-agent: Joe-Go-Proxy/0.1\n\n"))
+	_, err = clientWriteBuffer.Write([]byte("HTTP/1.0 200 Connection established\r\nProxy-agent: Joe-Go-Proxy/0.1\r\n\r\n"))
 	if err != nil {
-		log.Errorf("Error writing 200 OK", err)
-		return err
+		log.Debugf("Error writing 200 OK", err)
+		return
 	}
 	err = clientWriteBuffer.Flush()
 	if err != nil {
-		log.Errorf("Error flushing buffer", err)
-		return err
+		log.Debugf("Error flushing buffer", err)
+		return
 	}
 
 	return nil
@@ -49,7 +52,7 @@ func getHostAndPortFromHostHeader(hostHeader string) (string, int, error) {
 		_, err := strconv.Atoi(s[1])
 		port, _ = strconv.Atoi(s[1])
 		if err != nil {
-			log.Errorf("There was a problem decoding host : %v", hostHeader)
+			log.Debugf("There was a problem decoding host : %v", hostHeader)
 			return "", -1, err
 		}
 	} else {
@@ -58,6 +61,14 @@ func getHostAndPortFromHostHeader(hostHeader string) (string, int, error) {
 
 	return host, port, nil
 }
+
+func getResourceFromHeader(header string, host string, port int) (string) {
+	portString := ":"+strconv.Itoa(port)
+	r := strings.NewReplacer("https://"+host, "", "http://"+host, "",portString, "")
+	resource := r.Replace(header)
+	return resource
+}
+
 
 func connectToHost(host string, port int) (*net.TCPConn, error) {
 
@@ -77,8 +88,9 @@ func connectToHost(host string, port int) (*net.TCPConn, error) {
 	}
 }
 
-//Copy the contents of one connection from source to dst
-func copy(srcReadBuffer *bufio.Reader, dstWriteBuffer *bufio.Writer, dstHost string) {
+//Copy the contents of a buffer from source to dst
+func copy(srcReadBuffer *bufio.Reader, dstWriteBuffer *bufio.Writer, dstConn *net.TCPConn) {
+	defer dstConn.Close()
 	for {
 		readByte, err := srcReadBuffer.ReadByte()
 		if err != nil {
@@ -92,10 +104,12 @@ func copy(srcReadBuffer *bufio.Reader, dstWriteBuffer *bufio.Writer, dstHost str
 	}
 }
 
+//Checks if the buffer contains connect message within first 8 bytes
 func checkIsHttps(clientReadBuffer *bufio.Reader) (isHttps bool, err error) {
-
+	//Block until there is bytes to peek
+	clientReadBuffer.ReadByte()
+	clientReadBuffer.UnreadByte()
 	lookahead, err := clientReadBuffer.Peek(8)
-
 	if err != nil {
 		return
 	}
@@ -104,8 +118,8 @@ func checkIsHttps(clientReadBuffer *bufio.Reader) (isHttps bool, err error) {
 	return
 }
 
-func extern(clientConn *net.TCPConn) {
-	log.Infof("Beginning to proxy")
+func proxyData(clientConn *net.TCPConn) {
+	log.Debugf("Beginning to proxy")
 
 	clientReadBuffer := bufio.NewReader(clientConn)
 	clientWriteBuffer := bufio.NewWriter(clientConn)
@@ -114,173 +128,139 @@ func extern(clientConn *net.TCPConn) {
 	// will listen for message to process ending in newline (\n)
 	isHttps, err := checkIsHttps(clientReadBuffer)
 	if err != nil {
-		log.Errorf("Error peaking client connection buffer", err)
+		log.Debugf("Error peaking client connection buffer", err)
 		clientConn.Close()
 	}
 	port := 80
 	host := ""
-	hostNameLine := ""
-
-	if (isHttps) {
-		isHttps = true
+	resourceLine := ""
+	if isHttps {
 		port = 443
 	}
 	seenHostLine := false
+	seenResourceLine := false
 	//Scan headers from client
 	for {
-
 		message, err := clientReadBuffer.ReadString('\n')
 
 		if err != nil {
+			log.Debugf("Error reading from client connection buffer", err)
+			clientConn.Close()
 			break
-			log.Errorf("Error reading from client connection buffer", err)
 		}
 
 		messageString := string(message)
-		//Write headers to new buffer to forward for http
-		clientHeaderBuffer.WriteString(messageString)
 
 		// reached end of headers
 		if messageString == "\r\n" {
-			log.Infof("Received end of header client %v \n", string(message))
+			log.Debugf("Received end of header client %v \n", string(message))
 			break
-		} else if strings.HasPrefix(messageString, "Host:") {
+		} else {
+			//Write headers to new buffer to forward for http
+			clientHeaderBuffer.WriteString(messageString)
+		}
+		if strings.HasPrefix(messageString, "Host:") {
 			//Extract host and port
 			host, port, err = getHostAndPortFromHostHeader(messageString)
 
-			log.Infof("Extracting host from:  %v =@@= %v", string(message), host)
-			hostNameLine = messageString
+			if err != nil {
+				clientConn.Close()
+				break
+			}
+
+			log.Debugf("Extracting host from:  %v =@@= %v", string(message), host)
 			seenHostLine = true
+		} else if strings.HasPrefix(messageString, "GET ") {
+			resourceLine = messageString
+			seenResourceLine = true
 		}
 	}
-
-	if !seenHostLine {
+	if !seenHostLine || (!seenResourceLine && !isHttps) {
 		clientConn.Close()
 		return
 	}
-	if host == "" {
-		log.Infof("Got an empty host string\n")
-		log.Infof("Host line was: %v \n", hostNameLine)
 
-	}
 
-	remoteConn, _ := connectToHost(host, port)
-	if remoteConn == nil {
-		log.Errorf("Failed connecting to: %v on behalf of: %v \n", net.JoinHostPort(host, strconv.Itoa(port)), clientConn.RemoteAddr().String())
+	resourceHeader := getResourceFromHeader(resourceLine, host, port)
+
+	remoteConn, err := connectToHost(host, port)
+	if err != nil {
+		log.Debugf("Failed connecting to: %v on behalf of: %v \n", net.JoinHostPort(host, strconv.Itoa(port)), clientConn.RemoteAddr().String())
+		clientConn.Close()
 		return
 	}
 
 	remoteWriteBuffer := bufio.NewWriter(remoteConn)
+	remoteReadBuffer := bufio.NewReader(remoteConn)
 
-	log.Infof("Connected to: %v on behalf of: %v \n", remoteConn.RemoteAddr().String(), clientConn.RemoteAddr().String())
+	connections <- fmt.Sprintf("Connected to: %v on behalf of: %v \n", remoteConn.RemoteAddr().String(), clientConn.RemoteAddr().String());
+	log.Debugf("Connected to: %v on behalf of: %v \n", remoteConn.RemoteAddr().String(), clientConn.RemoteAddr().String())
 
 	if isHttps {
-		log.Infof("Connection is HTTPS")
-		sendSSLTunnellingResponse(clientWriteBuffer)
-	} else {
-		sendClientHeadersToHost(clientHeaderBuffer, remoteWriteBuffer)
-	}
-
-	go copy(remoteConn, clientConn, "Client")
-	go copy(clientConn, remoteConn, "Server")
-}
-
-func proxyData(clientConn *net.TCPConn) {
-	extern(clientConn)
-}
-
-func sendClientHeadersToHost(headers bytes.Buffer, hostBuffer *bufio.Writer) {
-	hostBuffer.Write(headers.Bytes())
-	hostBuffer.Write([]byte("Connection: close\r\n\r\n"))
-	hostBuffer.Flush()
-}
-
-func handleTunnel(clientConn *net.TCPConn) {
-	log.Debugf("Handling tunnel")
-
-	clientReader := bufio.NewReader(clientConn)
-	clientWriter := bufio.NewWriter(clientConn)
-
-	port := 80
-	host := ""
-	seenHostLine := false
-	//Read over entire initial message
-	for {
-		message, err := clientReader.ReadBytes('\n')
-
+		err = sendSSLTunnellingResponse(clientWriteBuffer)
 		if err != nil {
-			log.Infof("Error reading %v", err)
+			clientConn.Close()
+			remoteConn.Close()
 			return
 		}
+	} else {
+		err = sendClientHeadersToHost(clientHeaderBuffer, remoteWriteBuffer, resourceHeader)
+		if err != nil {
+			clientConn.Close()
+			remoteConn.Close()
+			return
+		}
+	}
+	//Copy data from Server into client and client to server concurrently
 
-		messageString := string(message)
+	//Server into client
+	go copy(remoteReadBuffer, clientWriteBuffer, clientConn)
+	//Client into server
+	go copy(clientReadBuffer, remoteWriteBuffer, remoteConn)
+}
 
-		// reached end of headers
-		if messageString == "\r\n" {
-			log.Infof("Received end of header client %v \n", string(message))
+
+func sendClientHeadersToHost(headers bytes.Buffer, hostBuffer *bufio.Writer, resourceHeader string) (err error) {
+
+	for {
+		line, headerError := headers.ReadString('\n')
+		if headerError != nil {
 			break
-		} else if strings.HasPrefix(messageString, "Host:") {
-			//Extract host and port
-			host, port, err = getHostAndPortFromHostHeader(messageString)
-			log.Infof("Host header: %v", messageString)
-
-			if err != nil {
-				log.Infof("Error reading %v", err)
-				return
-			}
-			seenHostLine = true
+		}
+		//Swap out GET header with non abs version
+		if strings.HasPrefix(line, "GET ") {
+			_, err = hostBuffer.WriteString(resourceHeader)
+		} else {
+			_, err = hostBuffer.WriteString(line)
+		}
+		if err != nil {
+			break
 		}
 	}
 
-	if !seenHostLine {
-		return
-	}
-
-	remoteConn, err := connectToHost(host, port)
-
+	_, err = hostBuffer.Write([]byte("Connection: close\r\n\r\n"))
 	if err != nil {
 		return
 	}
-
-	err = sendSSLTunnellingResponse(clientWriter)
-	if err != nil {
-		return
-	}
-
-	go copy(remoteConn, clientConn, "Client")
-	go copy(clientConn, remoteConn, "Server")
-
+	err = hostBuffer.Flush()
+	return
 }
 
-func handleInitMessage(clientConn *net.TCPConn) {
-	clientReader := bufio.NewReader(clientConn)
 
-	lookahead, err := clientReader.Peek(8)
 
-	if err != nil {
-		log.Debugf("Error peeking %v\n", err)
-		return
-	}
-
-	lookaheadString := string(lookahead)
-
-	//Client has sent Connect message to setup tunneling
-	if strings.HasPrefix(strings.ToUpper(lookaheadString), "CONNECT") {
-		handleTunnel(clientConn)
-	} else {
-		proxyData(clientConn)
+func connectionPrinter(){
+	for {
+		connection := <-connections
+		log.Infof("Connection info: %v", connection)
 	}
 }
 
-func handleConnection(clientConn *net.TCPConn) {
-	//defer clientConn.Close()
-	log.Debugf("New connection from: %v\n", clientConn.LocalAddr().String())
-	handleInitMessage(clientConn)
-
-}
 
 func main() {
 	configureLogging()
+
+	connections = make(chan string)
+	go connectionPrinter()
 
 	lnaddr, err := net.ResolveTCPAddr("tcp", ":8080")
 	if err != nil {
@@ -301,7 +281,7 @@ func main() {
 			log.Infof("Error accepting connection: %v\n", err)
 			continue
 		}
-		log.Infof("New Conn\n")
+		log.Debugf("New Conn\n")
 		go proxyData(conn)
 	}
 }
