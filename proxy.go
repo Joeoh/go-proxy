@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"io"
 )
 
 const _DEFAULTLOG = "/var/log/go-proxy.log"
@@ -51,8 +52,6 @@ func addToBlacklist(item string) {
 func checkBlacklist(item string) bool {
 	defer blacklist.RUnlock()
 	blacklist.RLock()
-	res := blacklist.m[item]
-	log.Info(res)
 	return blacklist.m[item]
 }
 
@@ -131,6 +130,17 @@ func getHostAndPortFromHostHeader(hostHeader string) (string, int, error) {
 	return host, port, nil
 }
 
+func getContentLengthFromHeader(header string) (int, error) {
+	r := strings.NewReplacer("Content-Length: ", "", "\r\n", "")
+	lenString := r.Replace(header)
+	contentLength, err := strconv.Atoi(lenString)
+	if err != nil {
+		return -1, err
+	}
+	return contentLength, nil
+
+}
+
 func getResourceFromHeader(header string, host string, port int) (string) {
 	portString := ":" + strconv.Itoa(port)
 	r := strings.NewReplacer("https://"+host, "", "http://"+host, "", portString, "")
@@ -156,12 +166,24 @@ func connectToHost(host string, port int) (*net.TCPConn, error) {
 	}
 }
 
-//Copy the contents of a buffer from source to dst
-func copy(srcReadBuffer *bufio.Reader, dstWriteBuffer *bufio.Writer, dstConn *net.TCPConn, srcConn *net.TCPConn) {
-	//defer dstConn.Close()
-	//defer srcConn.Close()
-	defer closeWithLog(srcConn)
-	defer closeWithLog(dstConn)
+func connectToHostNew(host string, port int) (net.Conn, error) {
+	remoteAddrs, err := net.LookupIP(host)
+
+	if err == nil {
+		ipAddr := remoteAddrs[0]
+		remoteAddrAndPort := &net.TCPAddr{IP: ipAddr, Port: port}
+
+		return net.Dial("tcp", remoteAddrAndPort.String())
+	} else {
+		return nil, err
+	}
+
+}
+
+//Blindly copies data across
+func tunnelSSL(srcReadBuffer *bufio.Reader, dstWriteBuffer *bufio.Writer, dstConn *net.TCPConn, srcConn *net.TCPConn) {
+	defer dstConn.Close()
+	defer srcConn.Close()
 	for {
 		readByte, err := srcReadBuffer.ReadByte()
 		if err != nil {
@@ -173,6 +195,57 @@ func copy(srcReadBuffer *bufio.Reader, dstWriteBuffer *bufio.Writer, dstConn *ne
 		}
 		dstWriteBuffer.Flush()
 	}
+}
+
+//Copy the contents of a buffer from source to dst
+func copy(srcReadBuffer *bufio.Reader, dstWriteBuffer *bufio.Writer, dstConn *net.TCPConn, srcConn *net.TCPConn) {
+	//defer dstConn.Close()
+	//defer srcConn.Close()
+	defer closeWithLog(srcConn)
+	defer closeWithLog(dstConn)
+	headersFinished := false
+	contentLength := -1
+	isChunked := false
+	for {
+		if !headersFinished {
+
+			line, err := srcReadBuffer.ReadString('\n')
+			if err != nil {
+				return
+			}
+			lineLower := strings.ToLower(line)
+			if strings.Contains(lineLower, "transfer-encoding: chunked") {
+				isChunked = true
+			} else if strings.Contains(lineLower, "content-length: ") {
+				contentLength, err = getContentLengthFromHeader(line)
+				if err != nil {
+					log.Debug(err)
+					return
+				}
+			} else if line == "\r\n" {
+				headersFinished = true
+			}
+			dstWriteBuffer.WriteString(line)
+
+		} else {
+			if contentLength > -1 {
+				buf := make([]byte, contentLength)
+				_, err := srcReadBuffer.Read(buf)
+				if err != nil {
+					log.Errorf("Error reading buffer", err)
+					return
+				}
+				dstWriteBuffer.Write(buf)
+			} else if isChunked {
+				tunnelSSL(srcReadBuffer, dstWriteBuffer, dstConn, srcConn)
+			}
+
+		}
+
+		dstWriteBuffer.Flush()
+
+	}
+
 }
 
 //Checks if the buffer contains connect message within first 8 bytes
@@ -297,6 +370,12 @@ func proxyData(clientConn *net.TCPConn) {
 			//remoteConn.Close()
 			return
 		}
+
+		//Copy data from Server into client and client to server concurrently
+		//Server into client
+		go tunnelSSL(remoteReadBuffer, clientWriteBuffer, clientConn, remoteConn)
+		//Client into server
+		go tunnelSSL(clientReadBuffer, remoteWriteBuffer, remoteConn, clientConn)
 	} else {
 		err = sendClientHeadersToHost(clientHeaderBuffer, remoteWriteBuffer, resourceHeader)
 		if err != nil {
@@ -306,14 +385,14 @@ func proxyData(clientConn *net.TCPConn) {
 			//remoteConn.Close()
 			return
 		}
+
+		//closeWithLog(clientConn)
+		//closeWithLog(remoteConn)
+		//Server into client
+		//copy(clientReadBuffer, remoteWriteBuffer, remoteConn, clientConn)
+
+		copy(remoteReadBuffer, clientWriteBuffer, clientConn, remoteConn)
 	}
-	//Copy data from Server into client and client to server concurrently
-
-
-	//Server into client
-	go copy(remoteReadBuffer, clientWriteBuffer, clientConn, remoteConn)
-	//Client into server
-	go copy(clientReadBuffer, remoteWriteBuffer, remoteConn, clientConn)
 }
 
 func sendClientHeadersToHost(headers bytes.Buffer, hostBuffer *bufio.Writer, resourceHeader string) (err error) {
@@ -324,7 +403,7 @@ func sendClientHeadersToHost(headers bytes.Buffer, hostBuffer *bufio.Writer, res
 			break
 		}
 		//Swap out GET header with non abs version
-		if strings.HasPrefix(line, "GET ") {
+		if isHTTPMethod(line) {
 			_, err = hostBuffer.WriteString(resourceHeader)
 		} else {
 			_, err = hostBuffer.WriteString(line)
@@ -380,6 +459,91 @@ func connectionPrinter() {
 	}
 }
 
+
+func isHTTPMethod(header string) bool {
+	return strings.HasPrefix(header, "GET ") || strings.HasPrefix(header, "POST ") || strings.HasPrefix(header, "HEAD ") || strings.HasPrefix(header, "OPTIONS ")
+}
+
+//Function for testing reading from a non closing connection with  multiple conns
+func connectionLoopTest(conn net.Conn) {
+	defer conn.Close()
+	connReadBuffer := bufio.NewReader(conn)
+	connWriteBuffer := bufio.NewWriter(conn)
+	var contentBuffer bytes.Buffer
+	var host string
+	var port int
+	//var resourceLine string
+	seenResourceLine := false
+	hasBody := false
+	contentLength := 0
+	resourceHeader := ""
+	for {
+		curString, err := connReadBuffer.ReadString('\n')
+		if err != nil {
+			log.Debug("Finished reading", err)
+			break
+		}
+
+		if curString == "\r\n"  {
+			contentBuffer.WriteString(curString)
+			if hasBody {
+				body := make([]byte, contentLength)
+				_, err := connReadBuffer.Read(body)
+				if err != nil {
+					log.Errorf("Error reading buffer", err)
+					return
+				}
+				contentBuffer.Write(body)
+			}
+			break
+		}
+
+		if strings.HasPrefix(curString, "Host:") {
+			host, port, err = getHostAndPortFromHostHeader(curString)
+
+			if err != nil {
+				log.Debug("Error getting host from header", err)
+				return
+			}
+		} else if strings.HasPrefix(curString, "Content-Length: ") {
+			contentLength, err = getContentLengthFromHeader(curString)
+			hasBody = true
+			if err != nil {
+				return
+			}
+		} else if isHTTPMethod(curString){
+			resourceHeader = curString
+			seenResourceLine = true
+		}
+		contentBuffer.WriteString(curString)
+	}
+
+	if !seenResourceLine {
+		return
+	}
+
+
+	if isBlocked(host) {
+		sendBlockedMessage(connWriteBuffer, host)
+		return
+	}
+
+
+	remoteConn, err := connectToHostNew(host, port)
+	if err != nil {
+		log.Debug("Error connecting to host", err)
+		return
+	}
+
+	remoteConnWriter := bufio.NewWriter(remoteConn)
+
+	resourceHeader = getResourceFromHeader(resourceHeader, host,port)
+	sendClientHeadersToHost(contentBuffer, remoteConnWriter, resourceHeader)
+
+	//Copy remote conn into client
+	io.Copy(conn, remoteConn)
+}
+
 func main() {
 	configureLogging()
 	configureBlackLists()
@@ -399,12 +563,13 @@ func main() {
 	log.Infof("Listening for connections on %v\n", listener.Addr())
 
 	for {
-		conn, err := listener.AcceptTCP()
+		conn, err := listener.Accept()
 		if err != nil {
 			log.Infof("Error accepting connection: %v\n", err)
 			continue
 		}
 		log.Debugf("New Conn from %v", conn.RemoteAddr())
-		go proxyData(conn)
+		//go proxyData(conn)
+		go connectionLoopTest(conn)
 	}
 }
