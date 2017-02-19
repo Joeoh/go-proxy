@@ -465,10 +465,8 @@ func isHTTPMethod(header string) bool {
 }
 
 //Function for testing reading from a non closing connection with  multiple conns
-func connectionLoopTest(conn net.Conn) {
+func connectionLoopTest(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bufio.Writer) {
 	defer conn.Close()
-	connReadBuffer := bufio.NewReader(conn)
-	connWriteBuffer := bufio.NewWriter(conn)
 	var contentBuffer bytes.Buffer
 	var host string
 	var port int
@@ -544,6 +542,64 @@ func connectionLoopTest(conn net.Conn) {
 	io.Copy(conn, remoteConn)
 }
 
+
+func handleConnection(conn net.Conn){
+	connectionReader := bufio.NewReader(conn)
+	connectionWriter := bufio.NewWriter(conn)
+
+	isHttps, err := checkIsHttps(connectionReader)
+	if err != nil {
+		return
+	}
+	if !isHttps {
+		connectionLoopTest(conn, connectionReader, connectionWriter)
+	} else {
+		handleHTTPS(conn, connectionReader, connectionWriter)
+		log.Debug("Conn is HTTPS")
+	}
+}
+func handleHTTPS(conn net.Conn, reader *bufio.Reader, writer *bufio.Writer) {
+	//defer conn.Close()
+	var host string
+	var port int
+
+	for  {
+		curLine, err := reader.ReadString('\n')
+		if err != nil {
+			return
+		}
+		if strings.HasPrefix(curLine, "Host: ") {
+			host, port, err = getHostAndPortFromHostHeader(curLine)
+			if err != nil {
+				return
+			}
+			break
+		}
+	}
+
+	if isBlocked(host) {
+		sendSSLTunnellingResponse(writer)
+		sendBlockedMessage(writer, host)
+		return
+	}
+
+
+	remoteConn, err := connectToHostNew(host, port)
+	//defer remoteConn.Close()
+	if err != nil {
+		log.Debug("Error connecting to host", err)
+		return
+	}
+
+	remoteConnWriter := bufio.NewWriter(remoteConn)
+
+	sendSSLTunnellingResponse(writer)
+
+	//Copy remote conn into client
+	go io.Copy(remoteConnWriter, conn)
+	go io.Copy(conn, remoteConn)
+}
+
 func main() {
 	configureLogging()
 	configureBlackLists()
@@ -570,6 +626,6 @@ func main() {
 		}
 		log.Debugf("New Conn from %v", conn.RemoteAddr())
 		//go proxyData(conn)
-		go connectionLoopTest(conn)
+		go handleConnection(conn)
 	}
 }
