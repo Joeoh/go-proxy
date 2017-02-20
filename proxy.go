@@ -147,8 +147,6 @@ func getResourceFromHeader(header string, host string, port int) (string) {
 	return resource
 }
 
-
-
 func connectToHost(host string, port int) (net.Conn, error) {
 	remoteAddrs, err := net.LookupIP(host)
 
@@ -176,7 +174,6 @@ func checkIsHttps(clientReadBuffer *bufio.Reader) (isHttps bool, err error) {
 	isHttps = strings.HasPrefix(strings.ToUpper(string(lookahead)), "CONNECT")
 	return
 }
-
 
 func sendClientHeadersToHost(headers bytes.Buffer, hostBuffer *bufio.Writer, resourceHeader string) (err error) {
 
@@ -252,7 +249,7 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 	var contentBuffer bytes.Buffer
 	var host string
 	var port int
-	//var resourceLine string
+
 	seenResourceLine := false
 	hasBody := false
 	contentLength := 0
@@ -318,8 +315,114 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 	resourceHeader = getResourceFromHeader(resourceHeader, host, port)
 	sendClientHeadersToHost(contentBuffer, remoteConnWriter, resourceHeader)
 
+	//This code was mostly taken from here http://rodaine.com/2015/04/async-split-io-reader-in-golang/
+	pr, pw := io.Pipe()
+	tr := io.TeeReader(remoteConn, pw)
+
+	// create channels to synchronize
+	done := make(chan bool)
+	errs := make(chan error)
+	defer close(done)
+	defer close(errs)
+
+	go func() {
+		// close the PipeWriter after the
+		// TeeReader completes to trigger EOF
+		defer pw.Close()
+
+		err := cacheData(tr)
+		if err != nil {
+			errs <- err
+			return
+		}
+
+		done <- true
+	}()
+
+	go func() {
+		_, err := io.Copy(conn, pr)
+		if err != nil {
+			errs <- err
+			return
+		}
+
+		done <- true
+	}()
+
+	// wait until both are done
+	// or an error occurs
+	for c := 0; c < 2; {
+		select {
+		case <-errs:
+			return
+		case <-done:
+			c++
+		}
+	}
+
 	//Copy remote conn into client
-	io.Copy(conn, remoteConn)
+	//io.Copy(conn, remoteConn)
+}
+
+func cacheData(data io.Reader) (err error) {
+	//TODO: Analyse data in here and add it to the cache if it can be cached
+	br := bufio.NewReader(data)
+
+	shouldCache := false
+
+	for {
+		line, err := br.ReadString('\n')
+
+		if err != nil {
+			break
+		}
+
+		if strings.HasPrefix(line, "Cache-Control: ") {
+			shouldCache = checkCacheHeader(line)
+			if !shouldCache {
+				//The data has headers which indicate not to cache - no need to go on
+				return
+			}
+		}
+	}
+
+	if shouldCache {
+
+	}
+
+	return
+}
+
+func isCacheValue(value string) (bool) {
+	if value == "no-cache" || value == "max-age=0" || value == "private" {
+		return false
+	}
+
+	return true
+
+}
+
+//Returns false if the header indicates the data shouldn't be cached - true if that data should be cached
+func checkCacheHeader(header string) (bool) {
+	header = strings.ToLower(header)
+	r := strings.NewReplacer("cache-control: ", "", "\r\n", "")
+	cacheLine := r.Replace(header)
+
+	if strings.Contains(cacheLine, ",") {
+		cacheLineElements := strings.Split(cacheLine, ",")
+
+		for i := 0; i < len(cacheLineElements); i++ {
+			el := cacheLineElements[i]
+			if isCacheValue(el) == false {
+				return false
+			}
+		}
+
+	} else {
+		return isCacheValue(cacheLine)
+	}
+
+	return true
 }
 
 func handleConnection(conn net.Conn) {
@@ -334,7 +437,6 @@ func handleConnection(conn net.Conn) {
 		handleHTTP(conn, connectionReader, connectionWriter)
 	} else {
 		handleHTTPS(conn, connectionReader, connectionWriter)
-		log.Debug("Conn is HTTPS")
 	}
 }
 func handleHTTPS(conn net.Conn, reader *bufio.Reader, writer *bufio.Writer) {
@@ -356,7 +458,6 @@ func handleHTTPS(conn net.Conn, reader *bufio.Reader, writer *bufio.Writer) {
 	}
 
 	if isBlocked(host) {
-		sendSSLTunnellingResponse(writer)
 		sendBlockedMessage(writer, host)
 		return
 	}
