@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Chat Example</title>
+    <title>Management Console</title>
     <script type="text/javascript">
         window.onload = function () {
             var conn;
@@ -10,11 +10,19 @@
 
             function appendLog(item) {
                 var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
-                log.appendChild(item);
+                appendHtml(log,item);
                 if (doScroll) {
                     log.scrollTop = log.scrollHeight - log.clientHeight;
                 }
             }
+
+			function appendHtml(el, str) {
+			  var div = document.createElement('div');
+			  div.innerHTML = str;
+			  while (div.children.length > 0) {
+			    el.appendChild(div.children[0]);
+			  }
+		}
 
             document.getElementById("form").onsubmit = function () {
                 if (!conn) {
@@ -36,14 +44,27 @@
                     appendLog(item);
                 };
                 conn.onmessage = function (evt) {
-                    console.log(evt.data)
-                    var messages = evt.data.split('\n');
+                    var message = JSON.parse(evt.data);
+                    console.log(message.MsgType);
+                   	if (message.MsgType == "connMsg") {
+	                    var d = new Date( message.Time  * 1000);
 
-                    for (var i = 0; i < messages.length; i++) {
-                        var item = document.createElement("div");
-                        item.innerText = messages[i];
-                        appendLog(item);
-                    }
+	                    var formatted = d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + " "+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds()
+
+	                    var newDiv = '<div><span>'+formatted+'</span><span class="rowItem">'+message.Cached+'</span><span class="rowItem">'+message.Https+'</span><span class="rowItem">'+message.Blocked+'</span><span class="rowItem">'+message.Src+'</span><span class="rowItem">'+message.Dst+'</span></div>';
+
+	                    appendLog(newDiv);
+	                }
+	                if (message.MsgType == "block") {
+	                	            var newDiv = '<div><span>Blocked: </span><span class="rowItem">'+message.Dst+'</div>';
+
+	                    appendLog(newDiv);
+	                }
+	                if (message.MsgType == "unblock") {
+	                	var newDiv = '<div><span>Unblocked: </span><span class="rowItem">'+message.Dst+'</div>';
+	                    appendLog(newDiv);
+	                }
+                    
                 };
             } else {
                 var item = document.createElement("div");
@@ -86,6 +107,12 @@
             left: 0px;
             width: 100%;
             overflow: hidden;
+        }
+
+        .rowItem {
+        	margin-left: 10px;
+        	margin-right: 10px;
+        	padding-right: 30px;
         }
 
     </style>
