@@ -51,6 +51,12 @@ func addToBlacklist(item string) {
 	blacklist.Unlock()
 }
 
+func removeFromBlacklist(item string){
+	blacklist.Lock()
+	blacklist.m[item] = false
+	blacklist.Unlock()
+}
+
 func checkBlacklist(item string) bool {
 	defer blacklist.RUnlock()
 	blacklist.RLock()
@@ -313,7 +319,7 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 	if exists {
 		log.Infof("Cache HIT!!")
 		reader := bytes.NewReader(data)
-		io.Copy(conn,reader)
+		io.Copy(conn, reader)
 	} else {
 		//Cache MISS
 		log.Infof("Cache MISS!!")
@@ -396,13 +402,12 @@ func cacheData(data io.Reader, resourceName string) (bool, error) {
 
 		if strings.HasPrefix(line, "HTTP/1.1: ") {
 			if checkHTTPStatusCodeForCache(line) {
-
+				//TODO: Remove codes that don't cache
 			}
 		}
 		if strings.HasPrefix(line, "Cache-Control: ") {
 			cacheLine = line
 			shouldCache = checkCacheHeader(cacheLine)
-
 
 		}
 
@@ -432,22 +437,20 @@ func checkHTTPStatusCodeForCache(header string) bool {
 	return false
 }
 
-
-
 func getMD5Hash(text string) string {
 	hasher := md5.New()
 	hasher.Write([]byte(text))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func writeCacheItem(resourceName string, content bytes.Buffer){
+func writeCacheItem(resourceName string, content bytes.Buffer) {
 	resourceName = getMD5Hash(resourceName)
 	log.Debugf("MD5: %v", resourceName)
-	f, err := os.Create("cache/"+resourceName)
+	f, err := os.Create("cache/" + resourceName)
 	defer f.Close()
 
 	if err != nil {
-		log.Error("Could not create file" ,err)
+		log.Error("Could not create file", err)
 	}
 
 	for {
@@ -462,7 +465,7 @@ func writeCacheItem(resourceName string, content bytes.Buffer){
 func checkCacheHit(resourceName string) bool {
 	hash := getMD5Hash(resourceName)
 
-	if _, err := os.Stat("cache/"+hash); os.IsNotExist(err) {
+	if _, err := os.Stat("cache/" + hash); os.IsNotExist(err) {
 		return false
 	}
 	log.Infof("Hit for : %v", hash)
@@ -477,14 +480,13 @@ func checkCacheAndRetrieve(resourceName string) ([]byte, bool) {
 		return nil, false
 	}
 
-	b, err := ioutil.ReadFile("cache/"+hash) // just pass the file name
+	b, err := ioutil.ReadFile("cache/" + hash) // just pass the file name
 
 	if err != nil {
 		return nil, false
 	}
-	return  b, true
+	return b, true
 }
-
 
 func isCacheValue(value string) (bool) {
 	if value == "no-cache" || value == "max-age=0" || value == "private" {
@@ -526,10 +528,10 @@ func handleConnection(conn net.Conn) {
 	if err != nil {
 		return
 	}
-	if !isHttps {
-		handleHTTP(conn, connectionReader, connectionWriter)
-	} else {
+	if isHttps {
 		handleHTTPS(conn, connectionReader, connectionWriter)
+	} else {
+		handleHTTP(conn, connectionReader, connectionWriter)
 	}
 }
 func handleHTTPS(conn net.Conn, reader *bufio.Reader, writer *bufio.Writer) {
@@ -570,10 +572,75 @@ func handleHTTPS(conn net.Conn, reader *bufio.Reader, writer *bufio.Writer) {
 	go io.Copy(conn, remoteConn)
 }
 
+
+func getDomainFromCommand(command string) string {
+	r := strings.NewReplacer("unblock ","", "block ", "", "\r\n", "")
+	return r.Replace(command)
+}
+
+
+func handleManagementConsoleMessage(conn net.Conn){
+	connReader := bufio.NewReader(conn)
+	connWriter := bufio.NewWriter(conn)
+
+	defer conn.Close()
+
+	for {
+		line, err := connReader.ReadString('\n')
+
+		if err != nil {
+			break
+		}
+		line = strings.ToLower(line)
+
+		if strings.HasPrefix(line, "block ") {
+			domain := getDomainFromCommand(line)
+			addToBlacklist(domain)
+			connWriter.WriteString("Blocked: " + domain+"\n")
+			connWriter.Flush()
+		}
+
+		if strings.HasPrefix(line, "unblock ") {
+			domain := getDomainFromCommand(line)
+			removeFromBlacklist(domain)
+			connWriter.WriteString("Unblocked: " + domain+"\n")
+			connWriter.Flush()
+		}
+
+	}
+}
+
+
+func managementConsoleHandler() {
+	lnaddr, err := net.ResolveTCPAddr("tcp", ":8081")
+	if err != nil {
+		panic(err)
+	}
+
+	listener, err := net.ListenTCP("tcp", lnaddr)
+	if err != nil {
+		panic(err)
+	}
+	defer listener.Close()
+
+	log.Infof("Listening for connections on %v\n", listener.Addr())
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Infof("Error accepting connection: %v\n", err)
+			continue
+		}
+		log.Debugf("New Conn from %v", conn.RemoteAddr())
+		go handleManagementConsoleMessage(conn)
+	}
+}
+
+
 func main() {
 	configureLogging()
 	configureBlackLists()
-	//go connectionPrinter()
+	go managementConsoleHandler()
 
 	lnaddr, err := net.ResolveTCPAddr("tcp", ":8080")
 	if err != nil {
