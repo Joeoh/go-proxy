@@ -1,0 +1,18 @@
+HTTP/1.1 200 OK
+Date: Mon, 20 Feb 2017 03:42:04 GMT
+Server: Apache/2.4.25
+Cache-Control: public
+Last-Modified: Thu, 26 Jun 2014 13:42:43 GMT
+Content-Length: 200
+Connection: close
+Content-Type: text/css; charset=utf-8
+
+/*<style>*/
+.n .sitemap li a.selected {background:#acadad;}
+
+.section-schools h2 {font-size:1.3em;}
+.section-ahss,
+.section-ems,
+.section-hs {margin-bottom:100px;}
+
+.section-toc {margin-bottom:40px;}

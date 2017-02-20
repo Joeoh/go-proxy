@@ -1,0 +1,1278 @@
+HTTP/1.1 200 OK
+Date: Mon, 20 Feb 2017 03:41:41 GMT
+Server: Apache/2.4.25
+Last-Modified: Thu, 20 Oct 2016 13:37:46 GMT
+ETag: "8b8e-53f4c07e47e65"
+Accept-Ranges: bytes
+Content-Length: 35726
+Connection: close
+Content-Type: application/javascript
+
+window.console = window.console || {log:function(){}}; // For debugging with Firebug without upsetting browsers without the console
+
+(function(context) {
+
+	// TCD Search App
+	// Search Integrating Google Appliance Search, Undergraduate XML/XSLT Search, Graduate Studies SQL Search and the AZ HTML page
+	// By Dave Smith, Web Design Office, Trinity College Dublin, 2011 July
+	// Version 2
+
+	// 2014 July 18, Dave Smith
+	// Mainly about adding the possibility to have more than one app instance on a page, which
+	// comes with the limitation/rule that the 'master' instance is the one that displays a results panel. The 'master' makes use
+	// of the URI. Dropped in 'use strict' for the performance improvements it brings. And tidied up thing a little.
+
+	// 2014 October 23, Dave Smith
+	// Added document title changes on submit in order to make awesome bar recalls in Firefox more useful for a better user experience
+
+	'use strict';
+
+	var inn,
+		// Config
+		proxies,
+		tcdSearchAppNS,
+		templates,
+		// Utilities
+		sanitise,
+		plural,
+		trim,
+		getGoogleApplianceHTML,
+		uriObject,
+		statusLoadingTimerID,
+		cache = {},
+		engines,
+		// Action functions
+		runSearch,
+		changeLinksState,
+		changeSelectState,
+		changePlaceholderText,
+		changeSearch,
+		pushState,
+		replaceState,
+		updateDocumentTitle,
+		documentTitle = document.title,
+		init,
+
+		$tcdsa,
+		$links,
+		$status,
+		$results,
+		$navigation,
+		$form,
+
+		getResultsSearchID,
+		resultsSearchID,
+
+		$;
+
+
+
+
+
+	// Input
+	inn = context.tcdSearchApp || {};
+
+
+
+
+
+
+
+	// Config
+	tcdSearchAppNS = 'tcd-search-app';
+
+	// Search Dependencies/Proxies.
+	proxies = {
+		googleSearch: inn.assetsPathNet + '/php/tcd-search/1/proxies/google-search.php',
+		az: inn.assetsPathNet + '/php/tcd-search/1/proxies/az.php',
+		courses: inn.assetsPathNet + '/php/tcd-search/1/proxies/courses.php',
+		graduateCoursesAZ: inn.assetsPathNet + '/php/tcd-search/1/proxies/courses-postgraduate.php',
+		people: inn.assetsPathNet + '/php/tcd-search/1/proxies/people.php'
+	};
+
+	templates = {
+		noResults: function(a) { return '0 search results in <strong>' + a.collection.title + '</strong>';},
+		loading: function() { return 'Searching..';},
+//			found: function(a) { return a.n + ' result'+ plural(a.n) + ' for <strong>' + sanitise(decodeURI(a.q)) + '</strong> found in <strong>' + a.collection.title + '</strong>'}
+		found: function(a) { return a.n + ' search result'+ plural(a.n) + ' in <strong>' + a.collection.title + '</strong>';}
+	};
+
+
+
+
+
+
+
+	// Utilities
+	sanitise = function(str) {
+		return str.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	};
+
+	plural = function(n) {
+		return (n > 1) ? 's' : '';
+	};
+
+	trim = function(s) {
+		return s.replace(/^\s+/g, '').replace(/\s+$/g, '');
+	};
+
+	getGoogleApplianceHTML = function(node) {
+		var html,s_contents,i,tagName;
+
+		html = '';
+		s_contents = node.contents();
+
+		for (i = 0; i < s_contents.length; i++) {
+			//str += s_contents[i].nodeType;
+			if (s_contents[i].nodeType === 1) {
+				tagName = s_contents[i].tagName;
+				//html += tagName;
+				if (!(tagName === 'br' || tagName === 'hr')) {
+					html += '<' + tagName + '>' + $(s_contents[i]).text() + '</' + tagName + '>';
+				}
+			}
+			else {
+				html += $(s_contents[i]).text();
+			}
+		}
+		return html;
+	};
+
+
+	// A results panel means the URL will be updated to aid bookmarking, therefore only one search instance (searchID) can have results panels on the page
+	// This makes sense anyway as the app brings together multiple searches into one results space, so having multiple results panels would defeat this idea
+	// If there is one or more result panels coming from more than one search instance, then the first wins
+	getResultsSearchID = function() {
+		return $results.eq(0).data(tcdSearchAppNS + '-id') || 0;
+	};
+
+
+
+
+
+
+
+
+	// Actions
+
+
+	// Run Search
+	runSearch = function(searchID) {
+
+		var rtn = false,
+			collection = uriObject.params.tcdsearchcollection,
+			collectionObject,
+			loadingText,
+			loading,
+			title,
+			q;
+
+		if (!$results.length) {
+			// If runSearch was called from the form submission then the form now submits as normal
+			rtn = true;
+		}
+		else {
+
+			resultsSearchID = getResultsSearchID();
+
+			// Some calls to runSearch will come from popstate etc. which really come from the searchID of the results panel of the page
+			if (searchID === undefined) {
+				searchID = resultsSearchID;
+			}
+
+			if (searchID !== resultsSearchID) {
+				// If runSearch was called from the form submission then the form now submits as normal
+				rtn = true;
+			}
+			else {
+
+				clearTimeout(statusLoadingTimerID);
+
+				// If the collection exists in the collections array then continue
+				if (inn['searchID' + searchID].collections.hasOwnProperty(collection)) {
+
+					collectionObject = inn['searchID' + searchID].collections[collection];
+
+					updateDocumentTitle(decodeURI(uriObject.params.tcdsearchq).replace('+', ' ', 'g'), collectionObject.title);
+
+					// If an engine exists run the search using that engine
+					if (collectionObject.hasOwnProperty('engine') && collectionObject.engine !== '') {
+
+						// If there is a results section the results will be posted there, otherwise the default action of the form takes place
+						if ($results.length) {
+
+							loadingText = templates.loading();
+							loading = function() { // Needs to be moved
+								if (loadingText.length > 13) {
+									loadingText = templates.loading();
+								}
+								loadingText += '.';
+								// Change the status to indicate the search results are loading
+								$status.each(function() {
+									$(this).html(loadingText);
+								});
+								statusLoadingTimerID = setTimeout(loading, 1000);
+							};
+							loading();
+
+							engines[collectionObject.engine](collectionObject);
+
+						}
+						else {
+							// If runSearch was called from the form submission then the form now submits as normal
+							rtn = true;
+						}
+					}
+					else {
+						// Redirect to the fallback URL
+						window.location.href = collectionObject.fallbackURL + decodeURI(uriObject.params.tcdsearchq).replace('+', ' ', 'g') + collectionObject.fallbackURLPost;
+					}
+				}
+			}
+		}
+
+		return rtn;
+
+	};
+
+
+	// Change Links State
+	changeLinksState = function(searchID) {
+
+		var className = uriObject.params.tcdsearchcollection;
+
+		if (searchID === undefined) {
+			searchID = resultsSearchID;
+		}
+
+		$links.filter('[data-' + tcdSearchAppNS + '-id="'+searchID+'"]').each(function() {
+
+			var $this = $(this),
+				$link = $this.find('a.' + className),
+				$selected = $link.parent().parent().find('.selected');
+
+			$selected.each(function() {
+				var $this = $(this);
+				if ($this.parent().is('strong')) {
+					$this.unwrap();
+				}
+				$this.removeClass('selected').find('span.selected-text').remove();
+			});
+
+			$link.addClass('selected').append('<span class="selected-text"> (Selected)</span>').wrap('<strong></strong>');
+
+		});
+
+	};
+
+
+	// Change Select State
+	changeSelectState = function(searchID) {
+
+		if (searchID === undefined) {
+			searchID = resultsSearchID;
+		}
+
+		$form.filter('[data-' + tcdSearchAppNS + '-id="'+searchID+'"]').each(function() {
+
+			var $this = $(this),
+				$select = $this.find('select');
+
+			$select.find('option:selected').removeAttr('selected');
+			$select.find('option[value="'+uriObject.params.tcdsearchcollection+'"]').attr('selected', 'selected');
+
+		});
+
+	};
+
+
+	// Change Select State
+	changePlaceholderText = function(searchID) {
+
+
+		if (searchID === undefined) {
+			searchID = resultsSearchID;
+		}
+
+		$form.filter('[data-' + tcdSearchAppNS + '-id="'+searchID+'"]').each(function() {
+
+			var $this = $(this),
+				$select = $this.find('select'),
+				collection,
+				innSearchID = inn['searchID'+searchID];
+
+			collection = uriObject.params.tcdsearchcollection === "" ? innSearchID.defaultCollection : uriObject.params.tcdsearchcollection;
+
+			collection = innSearchID.collections[collection];
+
+			$(this).find('input[name=tcdsearchq]').attr('placeholder',innSearchID.queryPlaceholder.pre+collection.title+innSearchID.queryPlaceholder.post);
+
+		});
+
+	};
+
+
+	// Change Collection
+	changeSearch = function() {
+		uriObject.params.start = 0;
+	};
+
+
+	// PushState
+	pushState = function() {
+
+		var rtn = true,
+			collection = uriObject.params.tcdsearchcollection,
+			innSearchIDCollection,
+			uriString;
+
+		// Check if it is a good idea to store the history
+		// As pushstate is always to do with the URL then the searchID to use is the resultsSearchID
+		if (inn['searchID' + resultsSearchID].collections.hasOwnProperty(collection)) {
+
+			innSearchIDCollection = inn['searchID' + resultsSearchID].collections[collection];
+
+			// Check if an engine exists
+			if (innSearchIDCollection.hasOwnProperty('engine') && innSearchIDCollection.engine !== '') {
+
+				uriString = URI.stringify(uriObject);
+
+				if (window.history && window.history.pushState && location.href) {
+					history.pushState(null, null, uriString);
+				}
+				else {
+					rtn = false;
+					window.location.href = uriString;
+				}
+			}
+		}
+
+		return rtn;
+
+	};
+
+	// Replace History
+	replaceState = function() {
+		if (history.replaceState) {
+			history.replaceState({type:'replaceStateFunction'}, 'Search for "'+sanitise(uriObject.params.tcdsearchq)+'" in '+ sanitise(uriObject.params.tcdsearchcollection), URI.stringify(uriObject));
+		}
+	};
+
+	updateDocumentTitle = function(q, facet) {
+
+		var title = documentTitle;
+
+		// Update the document title, to aid awesome bar recalls in Firefox etc.
+		if (q !== '') {
+			if (facet === '') {
+				title = q + ' : ' + documentTitle;
+			}
+			else {
+				title = q + ' : ' + facet + ' : ' + documentTitle;
+			}
+		}
+		document.title = sanitise(title);
+
+	};
+
+
+
+	// Init
+	init = function($) {
+
+
+		uriObject = URI.parse(window.location.href);
+
+		// On DOM Ready
+		$(function() {
+
+			$tcdsa = $('.' + tcdSearchAppNS);
+			$links = $tcdsa.filter('.' + tcdSearchAppNS + '-links');
+			$status = $tcdsa.filter('.' + tcdSearchAppNS + '-status');
+			$results = $tcdsa.filter('.' + tcdSearchAppNS + '-results');
+			$navigation = $tcdsa.filter('.' + tcdSearchAppNS + '-nav');
+			$form = $tcdsa.filter('.' + tcdSearchAppNS + '-form');
+
+			resultsSearchID = getResultsSearchID();
+
+
+			// EVENT BINDING
+
+			// On Form Submit
+			// Prevent submission of the search form and instead update the URI using Pushstate.
+			$form.bind('submit', function() {
+
+				var rtn = false,
+					collection,
+					uriString,
+					searchID;
+
+				searchID = $(this).data(tcdSearchAppNS + '-id');
+
+				uriObject.params.tcdsearchq = $(this).find('input[name=tcdsearchq]').val();
+
+				// Use a sensible default if the query parameter tcdsearchcollection does not exist
+				if (!(uriObject.params.tcdsearchcollection && uriObject.params.tcdsearchcollection !== '')) {
+					uriObject.params.tcdsearchcollection = inn['searchID'+searchID].defaultCollection;
+				}
+
+				// For browsers that do not support History API prepare a URI string and redirect the browser to it
+				if (window.history === undefined || window.history.pushState === undefined) {
+
+					uriString = URI.stringify(uriObject);
+					window.location.href = uriString;
+					rtn = true;
+
+				}
+				// For browsers that support History API the history state is not updated but the search is run
+				else {
+
+					rtn = runSearch(searchID);
+
+				}
+
+				collection = $(this).find('option:selected').val();
+				changeLinksState(searchID);
+
+
+				return rtn;
+
+			});
+
+
+			// On Query Keyup/Change
+			// If there are multiple searches used, make sure that when one changes the others are updated with the same value.
+			$form.delegate('input[name=tcdsearchq]', 'keyup change', function() {
+
+				var searchID,
+					$this = $(this),
+					$thisForm,
+					collection,
+					collectionObject,
+					resultsSearchID;
+
+				searchID = $this.closest('.'+tcdSearchAppNS).data(tcdSearchAppNS+'-id');
+
+				$thisForm = $form.filter('[data-'+tcdSearchAppNS+'-id="'+searchID+'"]');
+
+				$thisForm.find('input[name=tcdsearchq]').not($this).val($this.val());
+
+				// Update the document title, but only if the results panel matches the form being used
+				if ($results.length) {
+
+					resultsSearchID = getResultsSearchID();
+
+					if (resultsSearchID === searchID) {
+
+						collection = $thisForm.find('option[value="'+uriObject.params.tcdsearchcollection+'"]').val();
+						collectionObject = inn['searchID' + searchID].collections[collection];
+						updateDocumentTitle($this.val(), collectionObject.title);
+
+						if (uriObject.params.tcdsearchq !== $this.val()) {
+							uriObject.params.tcdsearchq = $this.val();
+							replaceState();
+						}
+					}
+				}
+
+				// Add classes to indicate whether the query field is populated or not
+				if ($this.val() !== '') {
+					$form.addClass(tcdSearchAppNS + '-q-populated');
+				}
+				else {
+					$form.removeClass(tcdSearchAppNS + '-q-populated');
+				}
+
+			});
+
+
+			// On Query Focus
+			$form.delegate('input[name=tcdsearchq], .' + tcdSearchAppNS + '-reset-wrap button', 'focusin', function() {
+				if ($form.find('input[name=tcdsearchq]').val() !== '') {
+					$form.removeClass(tcdSearchAppNS + '-q-unfocussed');
+				}
+			});
+
+
+			// On Query Blur
+			$form.delegate('input[name=tcdsearchq], .' + tcdSearchAppNS + '-reset-wrap button', 'focusout', function() {
+				$form.addClass(tcdSearchAppNS + '-q-unfocussed');
+			});
+
+
+			// On Collection Select Change
+			$form.delegate('select', 'change', function() {
+
+				var searchID,
+					$this = $(this);
+
+				searchID = $this.closest('.' + tcdSearchAppNS).data(tcdSearchAppNS + '-id');
+				uriObject.params.tcdsearchcollection = $this.find('option:selected').val();
+				if (searchID === resultsSearchID && pushState()) {
+					changeSearch(searchID);
+					changeSelectState(searchID);
+					changePlaceholderText(searchID);
+				}
+				return false;
+
+			});
+
+
+			// On Collection Links Change
+			$links.delegate('a', 'click', function() {
+
+				var searchID,
+					$this = $(this);
+
+				searchID = $this.closest('.' + tcdSearchAppNS).data(tcdSearchAppNS + '-id');
+				uriObject.params.tcdsearchcollection = $this.attr('class');
+				if (searchID === resultsSearchID && pushState()) {
+					changeSearch();
+					changeSelectState(searchID);
+					changeLinksState(searchID);
+					changePlaceholderText(searchID);
+					runSearch(searchID);
+				}
+				return false;
+			});
+
+
+			// On Popstate < History API
+			$(window).bind('popstate', function(e) {
+				// This function is run before the page changes
+				// e.state or in this case e.originalEvent.state refers to the second last state that was pushed
+				// e.originalEvent is the original event, e is the jQuery event object
+				// if (e.originalEvent && e.originalEvent.state && e.originalEvent.state.uri)
+				if (location.href) {
+					uriObject = URI.parse(location.href);
+
+					// The current search collection is sourced in the following order: URI, First Form Select and finally to default to alltcd
+					uriObject.params.tcdsearchcollection = uriObject.params.tcdsearchcollection || $form.find('select').val() || 'alltcd';
+					changeLinksState();
+					changeSelectState();
+					changePlaceholderText();
+					runSearch();
+					$form.filter('[data-' + tcdSearchAppNS + '-id="'+resultsSearchID+'"]').eq(0).find('input[name=tcdsearchq]').val(uriObject.params.tcdsearchq);
+
+				}
+
+				return false;
+
+			});
+
+
+
+
+
+			// RUN
+
+			// Get the search collection using fallbacks through URI, first select box to alltcd
+			uriObject.params.tcdsearchcollection = uriObject.params.tcdsearchcollection || $form.filter('[data-' + tcdSearchAppNS + '-id="'+resultsSearchID+'"]').find('select').val() || 'alltcd';
+			changeLinksState();
+			changeSelectState();
+
+			// If the search query is populated add a class
+			if ($form.find('input[name=tcdsearchq]').val() !== '') {
+				$form.addClass(tcdSearchAppNS + '-q-populated');
+			}
+
+			// If the URI Object has a query ready then run a search, otherwise don't but get the value if there is one
+			if (uriObject.params.tcdsearchq) {
+				runSearch();
+			}
+			else {
+				uriObject.params.tcdsearchq = $form.find('input[name=tcdsearchq]').val();
+			}
+
+
+
+
+			// xxxxxxxxx work in progress, need to hook into when the results are returned
+			// When a results link is focussed, allow the user to use the Down and Up arrow keys to move to the next and previous link
+			if ($results.length) {
+
+				(function() {
+
+					var $inputs = $form.find('input[name=tcdsearchq]'),
+						$input = $inputs.eq(0);
+
+					$inputs.on('keyup', function(e) {
+						if (e.which === 13) {
+							setTimeout(function() {
+
+							$results.triggerHandler('keydown', {inputKeyup:true});
+//console.log('asd',$results.find('a').eq(0),'aa');
+							},1000);
+						}
+					});
+
+					$results.on('keydown', function(e, data) {
+//console.log('a');
+						var $link,
+							//$item,
+							linkIndex,
+							$currentLink,
+							rtn = true,
+							linkFound = false,
+							i,
+							$resultsLinks,
+							resultsLinksLength;
+
+						data = data || {inputKeyup:false};
+						e.which = e.which || false;
+
+						$resultsLinks = $results.find('a');
+						resultsLinksLength = $resultsLinks.length;
+
+						$link = $(e.target);
+						//$item = $link.closest('.item');
+						linkIndex = $resultsLinks.index($link);
+
+						// 40 down, 38 up
+						if (e.which === 40 || data.inputKeyup) {
+							linkIndex += 1;
+							for (i = linkIndex; i < resultsLinksLength; i++) {
+								$currentLink = $resultsLinks.eq(i);
+								if ($resultsLinks.eq(i).is(':visible')) {
+									linkFound = true;
+									//$currentLink.closest('.item').addClass('tcd-search-app-results-item-selected');
+									//$item.removeClass('tcd-search-app-results-item-selected');
+									$currentLink.focus();
+									break;
+								}
+							}
+							if (linkFound === false) {
+								$input.focus();
+							}
+							rtn = false;
+						}
+						if (e.which === 38) {
+							linkIndex += -1;
+							for (i = linkIndex; i > -1; i--) {
+								$currentLink = $resultsLinks.eq(i);
+								if ($resultsLinks.eq(i).is(':visible')) {
+									linkFound = true;
+									//$currentLink.closest('.item').addClass('tcd-search-app-results-item-selected');
+									//$item.removeClass('tcd-search-app-results-item-selected');
+									$currentLink.focus();
+									break;
+								}
+							}
+							if (linkFound === false) {
+								$input.focus();
+							}
+							rtn = false;
+						}
+						if (rtn === false) {
+							e.preventDefault();
+						}
+					});
+				}());
+			}
+
+			$form.trigger(tcdSearchAppNS+'-ready');
+
+		});
+	};
+
+
+
+	// Polyfills needed for URI-js to work on browsers without JavaScript 1.6 support
+	// Only one needed and that is for Array.map
+	// Array.map polyfill by Mozilla: https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/array/map
+	if (!Array.prototype.map) {
+	Array.prototype.map = function(fun /*, thisp */) {
+
+		if (this === void 0 || this === null)
+		throw new TypeError();
+
+		var t = Object(this);
+		var len = t.length >>> 0;
+		if (typeof fun !== "function")
+		throw new TypeError();
+
+		var res = new Array(len);
+		var thisp = arguments[1];
+		for (var i = 0; i < len; i++) {
+		if (i in t)
+			res[i] = fun.call(thisp, t[i], i, t);
+		}
+
+		return res;
+	};
+	}
+
+
+
+
+	// If jQuery is already loaded use it
+	if (typeof jQuery !== 'undefined') {
+		// May need to check which version of jQuery in future
+		using(
+			inn.assetsPathNet + '/js/uri-js/uri-js-17.js', // URI.js dependency
+			inn.assetsPathNet + '/js/json2/json2.min.js',
+			function() {
+				$ = jQuery;
+				init(jQuery);
+			}
+		);
+	}
+	else {
+		using(
+			inn.assetsPathNet + '/js/jquery/1.9.1/jquery.min.js', // jQuery dependency
+			inn.assetsPathNet + '/js/uri-js/uri-js-17.js', // URI.js dependency
+			inn.assetsPathNet + '/js/json2/json2.min.js',
+			function() {
+				jQuery.noConflict();
+				$ = jQuery;
+				init(jQuery);
+			}
+		);
+	}
+
+
+
+
+
+
+
+
+	// SEARCH ENGINES
+	engines = {
+
+		// AZ
+		az: function(collection) {
+
+			var q = uriObject.params.tcdsearchq.replace(/^\s+|\s+$/g, '');
+
+			if (q === '') {
+				clearTimeout(statusLoadingTimerID);
+				$results.html('');
+				$navigation.html('');
+				$status.html('Please enter 1 or more characters to search');
+			}
+			else {
+				// Get cache if one exists
+				if (cache[collection.engine+q]) {
+
+					clearTimeout(statusLoadingTimerID);
+					$results.html(cache[collection.engine+q].results);
+					$navigation.html('');
+					$status.html(cache[collection.engine+q].status);
+
+				}
+				else {
+					$.ajax({
+						type: 'GET',
+						url: proxies.az,
+						data: '',
+						dataType: 'html',
+						success: function(data) {
+
+							clearTimeout(statusLoadingTimerID);
+
+							var items,
+								itemsLength,
+								html = '',
+								status = '',
+								terms = uriObject.params.tcdsearchq.toLowerCase().split('+'),
+								reg,
+								filterA = function() {
+									return reg.test($(this).text().toLowerCase());
+								};
+
+							data = $('<html></html>').append(data);
+							items = $(data).find('ul a');
+
+							for (var i = terms.length; i > -1; i--) {
+								reg = new RegExp(terms[i], "g");
+								items = items.filter(filterA);
+							}
+							itemsLength = items.length;
+							if (itemsLength) {
+								items.each(function() {
+									var $this = $(this);
+									html += '<li class="item"><div class="title"><strong><a href="'+$this.attr('href')+'">'+$this.text()+'</a></strong></div><div class="uri">'+$this.attr('href').replace(/^\/\/|^https?:\/\//, '').replace(/^www\./, '')+'</div></li>';
+								});
+								status += templates.found({n:itemsLength, q:uriObject.params.tcdsearchq, collection:collection});
+							}
+							else {
+								status += templates.noResults({q:uriObject.params.tcdsearchq, collection:collection});
+							}
+							html = '<ol>' + html + '</ol>';
+
+
+							// Save results and status to cache
+							cache[collection.engine+q] = cache[collection.engine+q] || {};
+							cache[collection.engine+q].results = html;
+							cache[collection.engine+q].status = status;
+
+							if (collection.engine === uriObject.params.tcdsearchcollection) {
+
+								$results.html(html);
+								$navigation.html('');
+								$status.html(status);
+							}
+						}
+					});
+				}
+			}
+		},
+
+		// Undergraduate Courses
+		undergraduatecourses: function(collection) {
+
+			var q = uriObject.params.tcdsearchq.replace(/^\s+|\s+$/g, '');
+
+			if (q === '') {
+				clearTimeout(statusLoadingTimerID);
+				$results.html('');
+				$navigation.html('');
+				$status.html('Please enter 1 or more characters to search');
+			}
+			else {
+				// Get cache if one exists
+				if (cache[collection.engine+q]) {
+
+					clearTimeout(statusLoadingTimerID);
+					$results.html(cache[collection.engine+q].results);
+					$navigation.html('');
+					$status.html(cache[collection.engine+q].status);
+
+				}
+				else {
+					$.ajax({
+						type: 'GET',
+						url: proxies.courses,
+						data: 'crs_title=' + uriObject.params.tcdsearchq,
+						dataType: 'html',
+						success: function(html) {
+
+							clearTimeout(statusLoadingTimerID);
+
+							var status = '',
+							itemsLength = $(html).find('li').length;
+							if (itemsLength === 0) {
+								status += templates.noResults({q:uriObject.params.tcdsearchq, collection:collection});
+							}
+							else {
+								status += templates.found({n:itemsLength, q:uriObject.params.tcdsearchq, collection:collection});
+							}
+
+							// Save results and status to cache
+							cache[collection.engine+q] = cache[collection.engine+q] || {};
+							cache[collection.engine+q].results = html;
+							cache[collection.engine+q].status = status;
+
+							if (collection.engine === uriObject.params.tcdsearchcollection) {
+
+								$results.html(html);
+								$navigation.html('');
+								$status.html(status);
+							}
+						}
+					});
+				}
+			}
+		},
+
+		// Postgraduate Courses
+		postgraduatecourses: function(collection) {
+
+			var q = uriObject.params.tcdsearchq.replace(/^\s+|\s+$/g, '');
+
+			if (q === '') {
+				clearTimeout(statusLoadingTimerID);
+				$results.html('');
+				$navigation.html('');
+				$status.html('Please enter 1 or more characters to search');
+			}
+			else {
+
+				// Get cache if one exists
+				if (cache[collection.engine+q]) {
+
+					clearTimeout(statusLoadingTimerID);
+					$results.html(cache[collection.engine+q].results);
+					$navigation.html('');
+					$status.html(cache[collection.engine+q].status);
+
+				}
+				else {
+					$.ajax({
+						type: 'GET',
+						url: proxies.graduateCoursesAZ,
+						data: 'crs_title=' + uriObject.params.tcdsearchq,
+						dataType: 'html',
+						success: function(data) {
+
+							clearTimeout(statusLoadingTimerID);
+
+							var html = $('<html></html>').append(data),
+								items = $(data).find('.item'),
+								itemsLength,
+								status = '',
+								terms = uriObject.params.tcdsearchq.toLowerCase().split('+'),
+								reg,
+								filterA = function() {
+									return reg.test($(this).find('a:first').text().toLowerCase());
+								};
+
+							for (var i = terms.length; i > -1; i--) {
+								reg = new RegExp(terms[i], "g");
+								items = items.filter(filterA);
+							}
+							itemsLength = items.length;
+							if (itemsLength) {
+								$(html).find('*:first').children().replaceWith(items);
+								html = $(html).html();
+								status += templates.found({n:itemsLength, q:uriObject.params.tcdsearchq, collection:collection});
+							}
+							else {
+								html = '';
+								status += templates.noResults({q:uriObject.params.tcdsearchq, collection:collection});
+							}
+
+
+							// Save results and status to cache
+							cache[collection.engine+q] = cache[collection.engine+q] || {};
+							cache[collection.engine+q].results = html;
+							cache[collection.engine+q].status = status;
+
+							if (collection.engine === uriObject.params.tcdsearchcollection) {
+
+								$results.html(html);
+								$navigation.html('');
+								$status.html(status);
+							}
+
+						}
+					});
+				}
+			}
+		},
+
+		// People
+		people: function(collection) {
+
+			var q = uriObject.params.tcdsearchq.replace(/^\s+|\s+$/g, '');
+
+			if (q.length < 3) {
+
+				clearTimeout(statusLoadingTimerID);
+				$status.html('Please enter 3 or more characters to search');
+			}
+			else {
+
+				// Get cache if one exists
+				if (cache[collection.engine+q]) {
+
+					clearTimeout(statusLoadingTimerID);
+					$results.html(cache[collection.engine+q].results);
+					$navigation.html('');
+					$status.html(cache[collection.engine+q].status);
+
+				}
+				else {
+
+					$.ajax({
+						type: 'GET',
+						url: proxies.people,
+						data: 'query=' + q,
+						dataType: 'json',
+						success: function(json) {
+
+							clearTimeout(statusLoadingTimerID);
+
+							var status = '',
+								ok = json.ok,
+								itemsLength = ok ? json.results.length : 0,
+								html = '',
+								i,
+								jsoni,
+								tmp;
+
+							if (!ok || itemsLength === 0) {
+								status += templates.noResults({q:uriObject.params.tcdsearchq, collection:collection});
+							}
+							else {
+								status += templates.found({n:itemsLength, q:uriObject.params.tcdsearchq, collection:collection});
+								html += '<ol class="items">';
+								for (i = 0; i < itemsLength; i++) {
+									jsoni = json.results[i];
+									if (jsoni.name && trim(jsoni.name)) {
+
+										html += '<li class="item'+(jsoni.imageexists ? ' image-profile-yes' : ' image-profile-no') +'"><img class="image-profile" src="'+jsoni.imageurl+'" alt="" /><div class="title"><strong>'+jsoni.name+'</strong></div>';
+
+										if (jsoni.maindepartment) {
+											html += jsoni.maindepartment;
+										}
+
+										if (jsoni.username || json.email || jsoni.tel) {
+
+											html += '<br />';
+
+											tmp = [];
+
+											if (jsoni.username) {
+												//tmp.push('<a href="//people.tcd.ie/' + jsoni.username + '">Profile<span class="cloak"> for '+jsoni.name+'</span></a>');
+											}
+
+											if (jsoni.email) {
+												tmp.push('<a href="mailto:'+jsoni.email+'">' + jsoni.email + '</a>');
+											}
+
+											if (jsoni.tel) {
+												tmp.push('<a href="tel:'+jsoni.tel+'"><span class="telephone-label">tel:</span>' + jsoni.teltext + '</a>');
+											}
+
+											html += tmp.join(', ');
+
+										}
+
+										html += '</li>';
+									}
+								}
+								html += '</ol>';
+							}
+
+							// Save results and status to cache
+							cache[collection.engine+q] = cache[collection.engine+q] || {};
+							cache[collection.engine+q].results = html;
+							cache[collection.engine+q].status = status;
+
+							// Only output if the collection is to view
+							if (collection.engine === uriObject.params.tcdsearchcollection) {
+
+								$results.html(html);
+								$navigation.html('');
+								$status.html(status);
+							}
+
+						}
+					});
+				}
+			}
+		},
+
+		// Google Search
+		googleappliance: function(collection) {
+
+			var data,
+				num,
+				q;
+
+			q = uriObject.params.tcdsearchq.replace(/^\s+|\s+$/g, '');
+
+			if (q === '') {
+				clearTimeout(statusLoadingTimerID);
+				$results.html('');
+				$navigation.html('');
+				$status.html('Please enter 1 or more characters to search');
+			}
+			else {
+
+				data = 'q=' + q + '&site=' + (collection.engineParams.site || '') + '&sitesearch=' + (collection.engineParams.sitesearch || '') + '&start=' + (uriObject.params.start || 0) + '&ie=' + (collection.acceptCharset || 'UTF-8') + '&oe=' + (inn.outputEncoding || 'UTF-8');
+				num = 10;
+				data += '&num=' + num;
+
+				// Call the proxy file that gets the search results
+				$.ajax({
+					type: 'GET',
+					url: proxies.googleSearch,
+					data: data,
+					dataType: 'xml',
+					_site: uriObject.params.site || '',
+					_sitesearch: uriObject.params.sitesearch || '',
+					success: function(data) {
+
+						clearTimeout(statusLoadingTimerID);
+
+						var $data = $(data),
+							resultsBlock = $data.find('RES'),
+							results = resultsBlock.find('R'),
+							startingNode = $data.find('PARAM[name=start]').attr('value')*1 || 0,
+							numResultsPerPage = $data.find('PARAM[name=num]').attr('value')*1 || 10,
+							totalPossibleResults = resultsBlock.find('M').text(),
+							currentPage = Math.floor(startingNode/numResultsPerPage) + 1,
+							spellingExists,
+							spellingAlternative,
+							spellingURL,
+							nextPageURI = resultsBlock.find('NB NU').text().replace(/^.*\?/, '') || undefined,
+							prevPageURI = resultsBlock.find('NB PU').text().replace(/^.*\?/, '') || undefined,
+							nextPageURIo,
+							prevPageURIo,
+							maxResults = 10,
+							html = '',
+							nav = '',
+							site = this._site,
+							sitesearch = this._sitesearch,
+							j = 0,
+							status = '';
+
+						spellingExists = false;
+						spellingAlternative = $data.find('Spelling Suggestion');
+						if (spellingAlternative.length) {
+							spellingExists = true;
+							spellingAlternative = spellingAlternative.eq(0).attr('q');
+							spellingURL = URI.parse(URI.stringify(uriObject));
+							spellingURL.params.tcdsearchq = spellingAlternative;
+							spellingURL = URI.stringify(spellingURL);
+						}
+						if (results.length > 0) {
+
+							results.each(function(i) {
+								var $this,snippet,uri,title,date,size,item_level;
+
+								if (j < maxResults) {
+
+									$this = $(this);
+									snippet = $this.find('S');
+									uri = $this.find('U');
+									title = $this.find('T');
+									date = $this.find('FS[NAME=date]');
+									size = $this.find('HAS C[SZ]');
+									item_level = $(this).attr('L') || 1;
+
+									if (title.length === 0) {
+										title = uri;
+									}
+
+									if (item_level < 3) {
+										j++;
+										html += '<li class="item item-level-' + item_level + '">';
+										html += '<div class="title">';
+										html += '<strong>';
+										html += '<a href="' + uri.text() + '">';
+										if ($this.attr('MIME')) {
+											html += '<span class="mime">[' + $this.attr('MIME').replace(/^.*\//, '') + '] </span>';
+										}
+										html += getGoogleApplianceHTML(title) + '</a>';
+										html += '</strong>';
+										html += '</div>';
+										html += '<div class="uri">' + uri.text().replace(/^https?:\/\//, '').replace(/^www\./, '') + '</div>';
+										html += '<div class="content">';
+										html += getGoogleApplianceHTML(snippet);
+										html += '</div>';
+										html += '</li>';
+									}
+								}
+							});
+
+							if (nextPageURI) {
+								nextPageURIo = URI.parse(URI.stringify(uriObject)); // Stringify and parse are used to copy the uriObject rather than change the current one
+								nextPageURIo.params.start = 1*startingNode + 1*numResultsPerPage;
+								nextPageURI = URI.stringify(nextPageURIo);
+								nav += '<a class="' + tcdSearchAppNS + '-nav-next" href="' + nextPageURI + '">Next</a> ';
+							}
+							if (prevPageURI) {
+								prevPageURIo = URI.parse(URI.stringify(uriObject));
+								prevPageURIo.params.start = 1*startingNode - 1*numResultsPerPage;
+								prevPageURI = URI.stringify(prevPageURIo);
+								nav += '<a class="' + tcdSearchAppNS + '-nav-prev" href="' + prevPageURI + '">Prev</a> ';
+							}
+							status += templates.found({n:totalPossibleResults, q:q, collection:collection});
+							status += '<span class="page">, page ' + currentPage + '</span> ';
+						}
+						else {
+							status += templates.noResults({q:q, collection:collection});
+						}
+						$results.html('<ol>' + html + '</ol>');
+						$navigation.html(nav);
+						if (spellingExists) {
+							status += '. Did you mean <a href="'+spellingURL+'">'+spellingAlternative+'</a>';
+						}
+						$status.html(status);
+					},
+					error: function() {
+						clearTimeout(statusLoadingTimerID);
+						$status.html('');
+						// Unbind submit and submit the form
+						$form.unbind('submit').submit();
+					}
+				});
+			}
+		},
+
+		maps : function(collection) {
+			var q = uriObject.params.tcdsearchq.replace(/^\s+|\s+$/g, '');
+
+			if (q === '') {
+				clearTimeout(statusLoadingTimerID);
+				$results.html('');
+				$navigation.html('');
+				$status.html('Please enter 1 or more characters to search');
+			}
+			else {
+				// Get cache if one exists
+				if (cache[collection.engine+q]) {
+
+					clearTimeout(statusLoadingTimerID);
+					$results.html(cache[collection.engine+q].results);
+					$navigation.html('');
+					$status.html(cache[collection.engine+q].status);
+
+				}
+				else {
+					$.ajax({
+						type: 'GET',
+						url: collection.fallbackURL,
+						data: q,
+						dataType: 'html',
+						success: function(data) {
+				//console.log(data);
+
+							clearTimeout(statusLoadingTimerID);
+
+							var items,
+								itemsLength,
+								html = '',
+								status = '',
+								terms = uriObject.params.tcdsearchq.toLowerCase().split('+'),
+								reg,
+								filterA = function() {
+									return reg.test($(this).text().toLowerCase());
+								};
+
+							data = $('<html></html>').append(data);
+							items = $(data).find('ul a');
+
+							for (var i = terms.length; i > -1; i--) {
+								reg = new RegExp(terms[i], "g");
+								items = items.filter(filterA);
+							}
+							itemsLength = items.length;
+							if (itemsLength) {
+								items.each(function() {
+									var $this = $(this);
+									html += '<li class="item"><div class="title"><strong><a href="'+$this.attr('href')+'">'+$this.text()+'</a></strong></div><div class="uri">'+$this.attr('href').replace(/^\/\/|^https?:\/\//, '').replace(/^www\./, '')+'</div></li>';
+								});
+								status += templates.found({n:itemsLength, q:uriObject.params.tcdsearchq, collection:collection});
+							}
+							else {
+								status += templates.noResults({q:uriObject.params.tcdsearchq, collection:collection});
+							}
+							html = '<ol>' + html + '</ol>';
+
+
+							// Save results and status to cache
+							cache[collection.engine+q] = cache[collection.engine+q] || {};
+							cache[collection.engine+q].results = html;
+							cache[collection.engine+q].status = status;
+
+							if (collection.engine === uriObject.params.tcdsearchcollection) {
+
+								$results.html(html);
+								$navigation.html('');
+								$status.html(status);
+							}
+						}
+					});
+				}
+			}
+		}
+
+	};
+
+
+}(this));

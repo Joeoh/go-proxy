@@ -1,0 +1,518 @@
+HTTP/1.1 200 OK
+Date: Mon, 20 Feb 2017 03:42:03 GMT
+Server: Apache/2.4.25
+X-UA-Compatible: IE=edge,chrome=1
+Connection: close
+Transfer-Encoding: chunked
+Content-Type: text/html; charset=utf-8
+
+85c7
+<!DOCTYPE html>
+<html lang="en" class="tcd-header-footer-webfontloader-off  t-twocol-sitemap site-sub-header-off site-header-on site-footer-on tier-site-main-on no-js">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="initial-scale=1" />
+<title>Faculties and Schools - Faculties and Schools : Trinity College Dublin</title>
+<meta name="author" content="Web Design Office, Trinity College Dublin" />
+<meta name="keywords" content="trinity college dublin,university,ireland,irish,universities,tcd,national,university of dublin,research,academic,study,studying,undergraduate,postgraduate"  />
+
+
+	<script type='text/javascript'>
+	// Trinity Google Tag Manager
+	(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+		new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+		j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+		'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+	})(window,document,'script','dataLayer','GTM-KTX8CV');
+	</script>
+
+<link rel="search" href="//www.tcd.ie/assets/xml/tcd-opensearch/tcd-opensearch.xml" title="Trinity College Dublin" type="application/opensearchdescription+xml" /><link rel="shortcut icon"  href="//www.tcd.ie/favicon.ico?v=3" type="image/x-icon" />
+
+<!-- HTML5Shiv: https://github.com/aFarkas/html5shiv -->
+<!--[if lt IE 9]><script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7/html5shiv.js"></script><![endif]-->
+
+<script src="//www.tcd.ie/assets/js/jquery/1.8.2/jquery.min.js" type="text/javascript"></script>
+
+<!-- TCD Header and Footer Assets -->
+<script type="text/javascript" src="//www.tcd.ie/assets/php/tcd-header-footer/2013e/actions.js?v=8"></script>
+<link rel="stylesheet" href="//www.tcd.ie/assets/php/tcd-header-footer/2013e/styles.css?v=18" type="text/css" />
+
+<!-- TCD Search Assets -->
+<script>
+var tcdSearchApp = tcdSearchApp || {};
+tcdSearchApp.searchID0 = {"outputEncoding":"utf-8","queryPlaceholder": {"pre":"Search ","post":""},"defaultCollection": "alltcd","collections": {"alltcd":{"title":"All Trinity","fallbackURL":"http://search.tcd.ie/search?proxystylesheet=default_frontend&client=default_frontend&q=","fallbackURLPost":"","engine":"googleappliance","engineParams":{"site":""},"acceptCharset":"utf-8"},"undergraduatecourses":{"title":"Undergraduate Courses","fallbackURL":"http://www.tcd.ie/courses/search.php?crs_title=","fallbackURLPost":"","engine":"undergraduatecourses","acceptCharset":"utf-8"},"postgraduatecourses":{"title":"Postgraduate Courses","fallbackURL":"http://www.tcd.ie/courses/searchpg.php?crs_title=","fallbackURLPost":"","engine":"postgraduatecourses","acceptCharset":"utf-8"},"people":{"title":"Staff","fallbackURL":"http://www.tcd.ie/assets/php/tcd-search/1/proxies/people.php?query=","fallbackURLPost":"","engine":"people","acceptCharset":"utf-8"},"az":{"title":"AZ of Trinity Areas","fallbackURL":"http://www.tcd.ie/az/#","fallbackURLPost":"","engine":"az","acceptCharset":"utf-8"},"collegemaps":{"title":"Trinity Maps","fallbackURL":"http://www.tcd.ie/Maps/map.php?q=","fallbackURLPost":"","engine":"","acceptCharset":"utf-8"},"researchthemes":{"title":"Research Expertise","fallbackURL":"http://www.tcd.ie/research/expertise/search/results/?p_freetext=","fallbackURLPost":"","engine":"","acceptCharset":"utf-8"},"stellacatalogue":{"title":"Library Catalogue","fallbackURL":"http://stella.catalogue.tcd.ie/iii/encore/search/C__S","fallbackURLPost":"__Orightresult__U","engine":"","acceptCharset":"utf-8"},"tara":{"title":"TARA Research Archive","fallbackURL":"http://www.tara.tcd.ie/simple-search?query=","fallbackURLPost":"","engine":"","acceptCharset":"utf-8"}}};
+</script>
+<script>
+tcdSearchApp.serverDocRootNet = '//www.tcd.ie';
+tcdSearchApp.assetsPathNet = '//www.tcd.ie/assets';
+tcdSearchApp.siteDocRootNet = '//www.tcd.ie/structure';
+tcdSearchApp.siteSearchCollection = '';
+</script>
+<script src="//www.tcd.ie/assets/js/loadrunner/loadrunner.js"></script>
+<script src="//www.tcd.ie/assets/php/tcd-search/1/actions.js?v=20"></script>
+<link rel="stylesheet" href="//www.tcd.ie/assets/php/tcd-search/1/styles.css" media="all" />
+<!-- Royal Slider -->
+<script src="//www.tcd.ie/assets/js/jquery-easing/1.3/jquery.easing.js" type="text/javascript"></script>
+<link href="//www.tcd.ie/assets/js/jquery-royalslider/9.2/royalslider.css" rel="stylesheet" />
+<link href="//www.tcd.ie/assets/js/jquery-royalslider/9.2/rs-minimal-white.css" rel="stylesheet" />
+<link href="//www.tcd.ie/assets/js/jquery-royalslider/9.2/rs-default-inverted.css" rel="stylesheet" />
+<link href="//www.tcd.ie/assets/js/jquery-royalslider/9.2/rs-default.css" rel="stylesheet" />
+<link href="//www.tcd.ie/assets/js/jquery-royalslider/9.2/rs-trinity-theme.css" rel="stylesheet" />
+<script src="//www.tcd.ie/assets/js/jquery-royalslider/9.2/jquery.royalslider.min.js?v=1" type="text/javascript"></script>
+
+<!-- Theme CSS -->
+<link href="//www.tcd.ie/tms/2/t/trinity-theme-2014/css.php?cache=19&amp;site_index_key=%2Fstructure%2F" media="all" rel="Stylesheet" />
+<link href="//www.tcd.ie/tms/2/t/toplevelpages/css.php?cache=2&amp;site_index_key=%2Fstructure%2F" media="all" rel="Stylesheet" />
+<link href="//www.tcd.ie/tms/2/t/structure/css.php?cache=3&amp;site_index_key=%2Fstructure%2F" media="all" rel="Stylesheet" />
+
+<!-- JavaScript Paths -->
+<script type="text/javascript">var tms = {SITE_DOCROOT_NET: '//www.tcd.ie/structure', SERVER_DOCROOT_NET: '//www.tcd.ie', THEME_DOCROOT_NET: '//www.tcd.ie/tms/2/t/structure', theme: 'structure'};</script>
+<!-- Theme JS -->
+<script src="//www.tcd.ie/tms/2/t/trinity-theme-2014/js.php?cache=6&amp;site_index_key=%2Fstructure%2F"></script>
+<script src="//www.tcd.ie/tms/2/t/toplevelpages/js.php?cache=1&amp;site_index_key=%2Fstructure%2F"></script>
+
+<!-- Open Sans Font -->
+<link href='//fonts.googleapis.com/css?family=Open+Sans:400,600,600italic,700,700italic,400italic,300,300italic' rel='stylesheet' type='text/css' />
+
+<!-- Merriweather Font -->
+<link href='//fonts.googleapis.com/css?family=Merriweather:400,300,300italic,400italic,700,700italic,900,900italic' rel='stylesheet' type='text/css'>
+
+</head>
+
+<body>
+
+	<!-- Trinity Google Tag Manager (noscript) -->
+	<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KTX8CV"
+	height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+	<!-- End Trinity Google Tag Manager (noscript) -->
+<header>
+    <div class="tier tier-tcd-header">
+        <div class="tier-inner tier-inner-tcd-header">
+            <div class="tier-inner-2 tier-inner-2-tcd-header"> <!-- TCD Header -->
+<div id="tcd-cookie-notice-placeholder"></div>
+<script type="text/javascript">
+
+// Trinity Cookie Notice
+(function() {
+    var s = document.createElement('script'),
+    	fs = document.getElementsByTagName('script')[0];
+    s.type = 'text/javascript';
+    s.async = true;
+    s.src = 'https://www.tcd.ie/assets/php/cookie-notice/1/app.js?v=5';
+    //s.src = '/assets/php/cookie-notice/1/app.js?v=1';
+    fs.parentNode.insertBefore(s, fs);
+    s = document.createElement('link');
+    s.type = 'text/css';
+    s.rel = 'stylesheet';
+    s.href = 'https://www.tcd.ie/assets/php/cookie-notice/1/app.css?v=3';
+    // s.href = '/assets/php/cookie-notice/1/app.css';
+    fs.parentNode.insertBefore(s, fs);
+}());
+
+</script>
+<div class="tcd-header">
+  <div class="tcd-header-inner">
+    <div class="tcd-header-inner2"> <a class="tcd-skip" href="#main-content">Skip to main content</a>
+      <h2><a href="//www.tcd.ie"><span class="tcdhomelink-tcdheader">Trinity College Dublin, The University of Dublin<span></span></span></a></h2>
+      <div class="tcd-header-section">
+        <p class="tcd-header-toggles"><a class="tcd-header-toggle tcd-header-toggle-menu" href="#tcd-header-panel-menu"><img src="//www.tcd.ie/assets/php/tcd-header-footer/2013e/img/menu.jpg" alt="Menu" /></a> <a class="tcd-header-toggle tcd-header-toggle-search" href="#tcd-header-panel-search"><img src="//www.tcd.ie/assets/php/tcd-header-footer/2013e/img/search.jpg" alt="Search" /></a></p>
+        <div id="tcd-header-panel-search" class="tcd-header-panel tcd-header-panel-search">
+          <div class="tcd-header-panel-inner">
+            <h3>Trinity Search</h3>
+            
+<div class="tcd-search-app tcd-search-app-form tcd-search-app-q-unfocussed" data-tcd-search-app-id="0">
+<form method="get" action="//www.tcd.ie/search/q/" accept-charset="utf-8">
+    <div class="tcd-search-app-box">
+        <div class="tcd-search-app-box-inner">
+             <span class="tcd-search-app-label-wrap"><label for="tcd-search-app-q1">Your query</label></span
+            ><span class="tcd-search-app-q-wrap"><input type="search" name="tcdsearchq" id="tcd-search-app-q1" placeholder="Search All Trinity" value="" /></span
+            ><span class="tcd-search-app-reset-wrap"><span class="tcd-search-app-reset"></span></span
+            ><span class="tcd-search-app-collection-wrap"><span class="tcd-search-app-collection"><span></span></span><label for="tcdsearchcollection1">Search collection</label><select name="tcdsearchcollection" id="tcdsearchcollection1"><option value="alltcd" selected>All Trinity</option><option value="undergraduatecourses">Undergraduate Courses</option><option value="postgraduatecourses">Postgraduate Courses</option><option value="people">Staff</option><option value="az">AZ of Trinity Areas</option><option value="collegemaps">Trinity Maps</option><option value="researchthemes">Research Expertise</option><option value="stellacatalogue">Library Catalogue</option><option value="tara">TARA Research Archive</option></select><input type="hidden" name="tcdsearchpage" value="1" /></span
+            ><span class="tcd-search-app-submit-wrap"><input type="submit" value="Go" /></span>
+        </div>
+    </div>
+</form>
+</div>
+          </div>
+        </div>
+        <div id="tcd-header-panel-menu" class="tcd-header-panel tcd-header-panel-menu">
+          <div class="tcd-header-panel-inner">
+            <div class="tcd-header-menu">
+              <h3>Trinity Menu</h3>
+              <ul>
+                <li><a href="//www.tcd.ie/structure/"><span>Faculties and Schools</span></a></li>
+                <li><a href="//www.tcd.ie/courses/"><span><span class="tcd-header-footer-visually-hidden">Trinity </span>Courses</span></a></li>
+                <li><a href="//www.tcd.ie/research/"><span><span class="tcd-header-footer-visually-hidden">Trinity </span>Research</span></a></li>
+                <li><a href="//www.tcd.ie/az/"><span>A–Z</span></a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+ </div>
+        </div>
+    </div>
+    <hr class="cloak" title="End of the Trinity College header" />
+        <div class="tier tier-site-header">
+        <div class="tier-inner tier-inner-site-header">
+            <div class="tier-inner-2 tier-inner-2-site-header">
+                <div class="h">
+                    <div class="h-inner">
+                        <h1><a href="//www.tcd.ie/structure/index.php"><span class="site-title">Faculties and Schools</span></a></h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+                        <hr class="cloak" title="End of the website header" />
+    </header>
+<div class="tier tier-site-mainplus">
+<div class="tier-inner tier-inner-site-mainplus tier-inner-site-mainplus-twocol-sitemap">
+<div class="tier-inner-2 tier-inner-2-site-mainplus">
+<div class="m lay cols hide-gut-left-1up">
+    <div class="mc width-3o4-1up pos-2o4-1up">
+        <div class="mc-inner gut-left-1up">
+                                    <div id="main-content" class="main" role="main" lang="en">
+                            <div class="tier tier-site-main">
+                                <div class="tier-inner tier-inner-site-main">
+                                    <div class="tier-inner-2 tier-inner-2-site-main"> 
+<section class="section-schools">
+    <h1 class="cloak">Faculties and Schools</h1>
+    <section class="section-toc">
+        <h2>On this page</h2>
+        <ul>
+            <li><a href="#ahss">Arts, Humanities and Social Sciences</a></li>
+            <li><a href="#ems">Engineering, Mathematics and Science</a></li>
+            <li><a href="#hs">Health Sciences</a></li>
+        </ul>
+    </section>
+    <section class="section-ahss">
+        <h2 id="ahss"><a href="http://ahss.tcd.ie/">Arts, Humanities and Social Sciences</a></h2>
+        <ul class="list-links">
+            <li><a href="/business/">Business</a></li>
+            <li><a href="/drama-film-music/">Creative Arts</a>
+                <ul class="list-links">
+                    <li><a href="/Drama/">Drama and Theatre Studies</a></li>
+                    <li><a href="/film/">Film Studies</a></li>
+                    <li><a href="/Music">Music</a></li>
+                </ul>
+            </li>
+            <li><a href="/Education/">Education</a></li>
+            <li><a href="/English/">English</a></li>
+            <li><a href="http://histories-humanities.tcd.ie/">Histories and Humanities</a>
+                <ul class="list-links">
+                    <li><a href="/cgws/">Centre for Gender and Women's Studies</a></li>
+                    <li><a href="/Classics/">Classics</a></li>
+                    <li><a href="/History_of_Art/">History of Art</a></li>
+                    <li><a href="/history/">History</a></li>
+                </ul>
+            </li>
+            <li><a href="/langs-lits-cultures/">Languages, Literatures and Cultural Studies</a>
+                <ul class="list-links">
+                    <li><a href="/European_Studies/">Centre for European Studies </a></li>
+                    <li><a href="/French/">French</a></li>
+                    <li><a href="/Germanic_Studies/">Germanic Studies </a></li>
+                    <li><a href="/Hispanic_Studies/">Hispanic Studies </a></li>
+                    <li><a href="/Irish/">Irish and Celtic Languages</a></li>
+                    <li><a href="/Italian/">Italian </a></li>
+                    <li><a href="/Russian/">Russian and Slavonic Studies</a></li>
+                    <li><a href="/nmes/">Near and Middle Eastern Studies</a></li>
+                </ul>
+            </li>
+            <li><a href="/Law/">Law</a></li>
+            <li><a href="/slscs/">Linguistic, Speech and Communication Sciences</a>
+                <ul class="list-links">
+                    <li><a href="/slscs/cds/">Centre for Deaf Studies </a></li>
+                    <li><a href="/slscs/clcs/">Centre for Language and Communications Studies </a></li>
+                    <li><a href="/slscs/clinical-speech-language/">Clinical Speech and Language Studies</a></li>
+                </ul>
+            </li>
+            <li><a href="http://psychology.tcd.ie/">Psychology</a></li>
+            <li><a href="/ssp/">Social Sciences and Philosophy</a>
+                <ul class="list-links">
+                    <li><a href="/Economics/">Economics</a></li>
+                    <li><a href="/Philosophy/">Philosophy</a></li>
+                    <li><a href="/Political_Science/">Political Science </a></li>
+                    <li><a href="/sociology/">Sociology</a></li>
+                </ul>
+            </li>
+            <li><a href="http://socialwork-socialpolicy.tcd.ie/">Social Work and Social Policy</a></li>
+            <li><a href="/religions-theology-ecumenics/">Confederal School of Religions, Peace Studies and Theology</a>
+                <ul class="list-links">
+                    <li><a href="/Religions_Theology/">Religions and Theology</a></li>
+                    <li><a href="/ise/">Irish School of Ecumenics</a></li>
+                    <li><a href="/loyola-institute/">Loyola Institute</a></li>
+                </ul>
+            </li>
+        </ul>
+    </section>
+    <section class="section-ems">
+        <h2 id="ems"><a href="http://ems.tcd.ie/">Engineering, Mathematics and Science</a></h2>
+        <ul class="list-links">
+            <li><a href="http://biochemistry.tcd.ie/">Biochemistry and Immunology</a>
+                <ul class="list-links">
+                    <li><a href="http://biochemistry.tcd.ie/biochemistry.php">Biochemistry</a></li>
+                    <li><a href="http://biochemistry.tcd.ie/immunology.php">Immunology</a></li>
+                </ul>
+            </li>
+            <li><a href="http://chemistry.tcd.ie/">Chemistry</a></li>
+            <li><a href="http://www.scss.tcd.ie/">Computer Science and Statistics</a>
+                <ul class="list-links">
+                    <li><a href="http://www.cs.tcd.ie/">Computer Science</a></li>
+                    <li><a href="http://www.scss.tcd.ie/disciplines/statistics/">Statistics</a></li>
+                </ul>
+            </li>
+            <li><a href="/Engineering/">Engineering</a>
+                <ul class="list-links">
+                    <li><a href="/civileng/">Civil, Structural and Environmental Engineering </a></li>
+                    <li><a href="/eleceng/">Electronic and Electrical Engineering </a></li>
+                    <li><a href="/mecheng/">Mechanical and Manufacturing Engineering </a></li>
+                </ul>
+            </li>
+            <li><a href="http://genetics-microbiology.tcd.ie/">Genetics and Microbiology </a>
+                <ul class="list-links">
+                    <li><a href="/Genetics/">Genetics </a></li>
+                    <li><a href="/Microbiology/">Microbiology </a></li>
+                </ul>
+            </li>
+            <li><a href="http://www.maths.tcd.ie/">Mathematics</a></li>
+            <li><a href="http://naturalscience.tcd.ie/">Natural Sciences</a>
+                <ul class="list-links">
+                    <li><a href="/environment/">Trinity Centre for the Environment</a></li>
+                    <li><a href="/Botany/">Botany</a></li>
+                    <li><a href="/Geography/">Geography</a></li>
+                    <li><a href="/Geology/">Geology</a></li>
+                    <li><a href="/Zoology/">Zoology</a></li>
+                    <li><a href="/tcbr/">Centre for Biodiversity Research</a></li>
+                </ul>
+            </li>
+            <li><a href="/Physics/">Physics</a></li>
+        </ul>
+    </section>
+    <section class="section-hs">
+        <h2 id="hs"><a href="http://www.healthsciences.tcd.ie/">Health Sciences</a></h2>
+        <ul class="list-links">
+            <li><a href="/dental/">Dental Science</a> </li>
+            <li><a href="http://www.tcd.ie/medicine/">Medicine</a>
+                <ul class="list-links">
+                    <li><a href="http://www.tcd.ie/medicine/global-health/">Centre for Global Health</a></li>
+                    <li><a href="http://www.tcd.ie/medicine/health_policy_management/">Centre for Health Policy and Management</a></li>
+                    <li class="first-child"><a href="http://www.tcd.ie/medicine/anatomy/">Anatomy</a></li>
+                    <li><a href="http://www.tcd.ie/medicine/clinical-medicine/">Clinical Medicine </a></li>
+                    <li><a href="http://www.tcd.ie/medicine/clinical_microbiology/">Clinical Microbiology </a></li>
+                    <li><a href="http://www.tcd.ie/medicine/haematology/">Haematology</a></li>
+                    <li><a href="http://www.tcd.ie/medicine/histopathology/">Histopathology and Morbid Anatomy </a></li>
+                    <li><a href="http://www.tcd.ie/medicine/immunology/">Immunology</a></li>
+                    <li><a href="http://www.tcd.ie/medicine/medical_gerontology/">Medical Gerontology </a></li>
+                    <li><a href="http://www.tcd.ie/medicine/obstetrics_gynaecology/">Obstetrics and Gynaecology </a></li>
+                    <li><a href="http://www.tcd.ie/medicine/occupational_therapy/">Occupational Therapy </a></li>
+                    <li><a href="http://www.tcd.ie/medicine/paediatrics/">Paediatrics</a></li>
+                    <li><a href="http://www.tcd.ie/medicine/pharmacology_therapeutics/">Pharmacology and Therapeutics </a></li>
+                    <li><a href="http://www.tcd.ie/medicine/physiology/">Physiology</a></li>
+                    <li><a href="http://www.tcd.ie/medicine/physiotherapy/">Physiotherapy</a></li>
+                    <li><a href="http://www.tcd.ie/medicine/psychiatry/">Psychiatry</a></li>
+                    <li><a href="http://www.tcd.ie/medicine/public_health_primary_care/">Public Health and Primary Care </a></li>
+                    <li><a href="http://www.tcd.ie/medicine/radiation-therapy/">Radiation Therapy </a></li>
+                    <li><a href="http://www.tcd.ie/medicine/surgery/">Surgery</a></li>
+                    <li><a href="http://www.tcd.ie/medicine/nutrition-dietetics/">Unit of Nutrition and Dietetic Studies </a></li>
+                </ul>
+            </li>
+            <li><a href="http://nursing-midwifery.tcd.ie/">Nursing and Midwifery</a></li>
+            <li><a href="http://pharmacy.tcd.ie/">Pharmacy and Pharmaceutical Sciences</a></li>
+        </ul>
+    </section>
+</section>
+ </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                                <div class="n width-1o4-1up pos-1o4-1up">
+                    <div class="n-inner gut-left-1up">                         <div class="sitemap">
+                                                                                                                <nav class="nav-site-side nav-site-side-sitemap">
+                                <h2>Sitemap</h2>
+                                <ul>
+<li><a href="//www.tcd.ie/structure/">Home</a></li>
+<li class="on open selected"><a href="//www.tcd.ie/structure/" class="on selected">Faculties and Schools</a></li>
+<li><a href="//www.tcd.ie/structure/research/">Research</a></li>
+<li><a href="//www.tcd.ie/structure/multidisciplinary-teaching-units/">Multidisciplinary Teaching Units</a></li>
+<li><a href="//www.tcd.ie/structure/services/">Services</a></li>
+</ul>
+ </nav>
+                                                    </div>
+                         </div>
+                </div>
+                            </div>
+        </div>
+    </div>
+</div>
+<footer>
+        <hr class="cloak" title="Start of the website footer" />
+    <div class="tier tier-site-footer">
+        <div class="tier-inner tier-inner-site-footer">
+            <div class="tier-inner-2 tier-inner-2-site-footer">                 <div class="f">
+                    <div class="social">
+                        <h2>Follow us on social media</h2>
+                        <ul class="social-list">
+                                                        <li><a class="social-twitter" href="http://twitter.com/tcddublin"><span class="social-icon"></span><span class="social-text">Twitter</span></a></li>
+                                                        <li><a class="social-facebook" href="http://facebook.com/trinitycollegedublin"><span class="social-icon"></span><span class="social-text">Facebook</span></a></li>
+                                                        <li><a class="social-youtube" href="http://youtube.com/user/trinitycollegedublin"><span class="social-icon"></span><span class="social-text">YouTube</span></a></li>
+                                                        <li><a class="social-itunesu" href="http://itunes.tcd.ie"><span class="social-icon"></span><span class="social-text">iTunes U</span></a></li>
+                                                    </ul>
+                    </div>
+                    <p><span class="date-modified"><span>Last updated </span><span>14 December 2016</span></span> <span class="author"><a href="mailto:webdes@tcd.ie">Faculties and Schools: Web Author (Email)</a></span></p>
+                </div>
+                                                <nav class="nav-site-sitemap" id="sitemap">
+                    <h2>Sitemap in footer</h2>
+                    <ul>
+<li><a href="//www.tcd.ie/structure/">Home</a></li>
+<li class="on open selected"><a href="//www.tcd.ie/structure/" class="on selected">Faculties and Schools</a></li>
+<li><a href="//www.tcd.ie/structure/research/">Research</a></li>
+<li><a href="//www.tcd.ie/structure/multidisciplinary-teaching-units/">Multidisciplinary Teaching Units</a></li>
+<li><a href="//www.tcd.ie/structure/services/">Services</a></li>
+</ul>
+ </nav>
+                            </div>
+        </div>
+    </div>
+        <hr class="cloak" title="Start of the Trinity College footer" />
+    <div class="tier tier-tcd-footer">
+        <div class="tier-inner tier-inner-tcd-footer">
+            <div class="tier-inner-2 tier-inner-2-tcd-footer"> 
+<!-- TCD Footer -->
+<div class="tcd-footer">
+  <div class="tcd-footer-inner">
+
+    <address>
+        <strong>Trinity College Dublin, The University of Dublin</strong><br />
+        College Green<br />
+        Dublin 2, Ireland<br />
+        T: <a href="tel:0035318961000">+353 1 896 1000</a><br />
+    </address>
+
+    <ul class="tcd-footer--list-links">
+      <li><a href="//www.tcd.ie/accessibility/"><span class="tcd-header-footer-visually-hidden">Trinity </span>Accessibility</a></li>
+      <li><a href="//www.tcd.ie/privacy/"><span class="tcd-header-footer-visually-hidden">Trinity </span>Privacy</a></li>
+      <li><a href="//www.tcd.ie/disclaim/"><span class="tcd-header-footer-visually-hidden">Trinity </span>Disclaimer</a></li>
+            <li><a href="//www.tcd.ie/contacts/"><span class="tcd-header-footer-visually-hidden">Trinity </span>Contact</a></li>
+    </ul>
+
+    <div class="tcd-footer--social">
+    	<h2>Follow Trinity on social media</h2>
+    	<ul class="tcd-footer--social-list">
+    		<li>
+    			<a class="tcd-footer--social-itunesu" href="http://itunes.tcd.ie">
+    				<span class="tcd-footer--social-icon">
+                        <svg width="40" height="40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                        	 viewBox="-472 272.1 13.5 16.9" style="enable-background:new -472 272.1 13.5 16.9;" xml:space="preserve">
+                            <g>
+                            	<path d="M-458.5,285.1c0.1,1.4-1,2.7-2.4,2.9c-1.4,0.2-2.7-0.8-2.8-2.3c-0.1-1.4,1-2.7,2.4-2.9c0.5-0.1,0.9,0,1.3,0.2v-7.1
+                            		l-6.8,1.3v8.8l0,0c0,0,0,0,0,0.1c0.1,1.4-1,2.7-2.4,2.9c-1.4,0.1-2.7-0.9-2.8-2.3s1-2.7,2.4-2.9c0.5-0.1,0.9,0,1.3,0.2v-10.2l0,0
+                            		l9.8-1.7l0,0l0,0l0,0l0,0V285.1L-458.5,285.1C-458.5,285-458.5,285-458.5,285.1z"/>
+                            </g>
+                            <image src="//www.tcd.ie/assets/php/tcd-header-footer/2013e/img/channels/itunes.png" xlink:href="" width="40" height="40"/>
+                        </svg>
+                    </span>
+    				<span class="tcd-footer--social-text">iTunes U</span>
+    			</a>
+    		</li>
+    		<li>
+    			<a class="tcd-footer--social-youtube" href="http://www.youtube.com/user/trinitycollegedublin">
+    				<span class="tcd-footer--social-icon">
+                        <svg width="40" height="40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                        	 viewBox="0 0 17.1 20.5" style="enable-background:new 0 0 17.1 20.5;" xml:space="preserve">
+                            <polygon points="5.3,0 4.6,3 4.5,3 3.8,0 2.6,0 4,4.6 4,7.6 5.2,7.6 5.2,4.4 6.5,0 "/>
+                            <path d="M7.6,6.6C7.6,6.5,7.5,6.4,7.5,6.2v-3c0-0.1,0-0.2,0.1-0.3C7.7,2.8,7.8,2.8,8,2.8c0.1,0,0.2,0,0.3,0.1C8.4,3,8.4,3.1,8.4,3.2
+                            	v3c0,0.1,0,0.3-0.1,0.4C8.2,6.7,8.1,6.7,8,6.7C7.8,6.7,7.7,6.7,7.6,6.6 M6.9,2.2c-0.3,0.3-0.4,0.6-0.4,1l0,2.9
+                            	c0,0.5,0.1,0.8,0.4,1.1C7.2,7.6,7.5,7.7,8,7.7c0.5,0,0.8-0.1,1.1-0.4C9.3,7,9.5,6.6,9.5,6.2V3.3c0-0.4-0.1-0.8-0.4-1
+                            	C8.8,2,8.4,1.8,8,1.8C7.5,1.8,7.2,2,6.9,2.2"/>
+                            <path d="M12.3,2v4.2c-0.1,0.1-0.2,0.2-0.3,0.3c-0.1,0.1-0.2,0.1-0.3,0.1c-0.1,0-0.2,0-0.2-0.1c0-0.1-0.1-0.2-0.1-0.3V2h-1v4.7
+                            	c0,0.3,0.1,0.6,0.2,0.7c0.1,0.2,0.3,0.2,0.5,0.2c0.2,0,0.4-0.1,0.6-0.2c0.2-0.1,0.4-0.3,0.6-0.5v0.6h1V2H12.3z"/>
+                            <path d="M14.1,13.7c-0.2,0-0.3,0.1-0.4,0.2c-0.1,0.1-0.1,0.3-0.1,0.5v0.6h0.9v-0.6c0-0.2,0-0.4-0.1-0.5
+                            	C14.4,13.7,14.3,13.7,14.1,13.7z"/>
+                            <path d="M10.3,13.6c-0.1,0-0.1,0-0.2,0.1c-0.1,0-0.1,0.1-0.2,0.2v3.5c0.1,0.1,0.2,0.2,0.2,0.2c0.1,0,0.2,0.1,0.3,0.1
+                            	c0.1,0,0.2,0,0.3-0.1c0.1-0.1,0.1-0.2,0.1-0.4v-2.9c0-0.2,0-0.3-0.1-0.4C10.6,13.7,10.5,13.6,10.3,13.6z"/>
+                            <path d="M17,11.5c0-1.3-1.1-2.4-2.5-2.4C12.7,9,10.8,9,8.8,9C8.7,9,8.6,9,8.5,9C8.4,9,8.3,9,8.2,9C6.3,9,4.4,9,2.6,9.1
+                            	c-1.4,0-2.5,1.1-2.5,2.4C0,12.6,0,13.7,0,14.7c0,1.1,0,2.1,0.1,3.2c0,1.3,1.1,2.4,2.5,2.4c1.9,0.1,3.9,0.1,6,0.1c2,0,4,0,6-0.1
+                            	c1.4,0,2.5-1.1,2.5-2.4c0.1-1.1,0.1-2.1,0.1-3.2C17.1,13.7,17,12.6,17,11.5z M3.7,18.4H2.5v-6.5H1.3v-1.1h3.6v1.1H3.7V18.4z
+                            	 M7.8,18.4h-1v-0.6c-0.2,0.2-0.4,0.4-0.6,0.5c-0.2,0.1-0.4,0.2-0.6,0.2c-0.2,0-0.4-0.1-0.5-0.2c-0.1-0.2-0.2-0.4-0.2-0.7v-4.7h1v4.3
+                            	c0,0.1,0,0.2,0.1,0.3c0,0.1,0.1,0.1,0.2,0.1c0.1,0,0.2,0,0.3-0.1c0.1-0.1,0.2-0.2,0.3-0.3v-4.2h1V18.4z M11.8,17.2
+                            	c0,0.4-0.1,0.7-0.2,0.9c-0.2,0.2-0.4,0.3-0.7,0.3c-0.2,0-0.4,0-0.5-0.1c-0.2-0.1-0.3-0.2-0.4-0.4v0.4h-1v-7.6h1v2.4
+                            	c0.1-0.2,0.3-0.3,0.4-0.4c0.2-0.1,0.3-0.1,0.5-0.1c0.3,0,0.6,0.1,0.8,0.4c0.2,0.2,0.3,0.6,0.3,1V17.2z M15.7,15.7h-2v1.1
+                            	c0,0.3,0,0.5,0.1,0.6c0.1,0.1,0.2,0.2,0.3,0.2c0.2,0,0.3,0,0.4-0.1c0.1-0.1,0.1-0.3,0.1-0.6v-0.4h1.1v0.4c0,0.6-0.1,1-0.4,1.3
+                            	c-0.3,0.3-0.6,0.4-1.2,0.4c-0.5,0-0.8-0.2-1.1-0.5c-0.3-0.3-0.4-0.7-0.4-1.3v-2.5c0-0.5,0.1-0.9,0.4-1.2c0.3-0.3,0.7-0.5,1.1-0.5
+                            	c0.5,0,0.8,0.1,1.1,0.4c0.3,0.3,0.4,0.7,0.4,1.2V15.7z"/>
+                            <image src="//www.tcd.ie/assets/php/tcd-header-footer/2013e/img/channels/youtube.png" xlink:href="" width="40" height="40"/>
+                        </svg>
+                    </span>
+    				<span class="tcd-footer--social-text">YouTube</span>
+    			</a>
+    		</li>
+    		<li>
+    			<a class="tcd-footer--social-facebook" href="http://facebook.com/trinitycollegedublin">
+    				<span class="tcd-footer--social-icon">
+                        <svg width="40" height="40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                        	 viewBox="-475 273.5 7.2 15.5" style="enable-background:new -475 273.5 7.2 15.5;" xml:space="preserve">
+                            <g>
+                            	<path d="M-473.5,289h3.1c0,0,0-4.3,0-7.7h2.3l0.3-3.1h-2.4v-1.3c0-0.6,0.4-0.7,0.7-0.7s1.7,0,1.7,0v-2.7h-2.4c-2.7,0-3.3,2-3.3,3.2
+                            		v1.4h-1.5v3.1h1.5C-473.5,284.8-473.5,289-473.5,289z"/>
+                            </g>
+                            <image src="//www.tcd.ie/assets/php/tcd-header-footer/2013e/img/channels/facebook.png" xlink:href="" width="40" height="40"/>
+                        </svg>
+                    </span>
+    				<span class="tcd-footer--social-text">Facebook</span>
+    			</a>
+    		</li>
+    		<li>
+    			<a class="tcd-footer--social-twitter" href="https://twitter.com/tcddublin">
+    				<span class="tcd-footer--social-icon">
+                        <svg width="40" height="40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                        	 viewBox="-471 274.6 15.5 12.4" style="enable-background:new -471 274.6 15.5 12.4;" xml:space="preserve">
+                            <g>
+                            	<path d="M-455.9,274.8c-0.6,0.4-1.3,0.6-2,0.8c-0.6-0.6-1.4-1-2.3-1c-1.8,0-3.2,1.4-3.2,3.1c0,0.2,0,0.5,0.1,0.7
+                            		c-2.7-0.1-5.1-1.3-6.6-3.2c-0.3,0.4-0.5,1-0.5,1.5c0,1.1,0.6,2,1.4,2.6c-0.5,0-1-0.2-1.4-0.4l0,0c0,1.5,1.1,2.8,2.6,3.1
+                            		c-0.3,0.1-0.6,0.2-0.9,0.2c-0.2,0-0.4,0-0.6-0.1c0.4,1.2,1.6,2.1,3,2.2c-1.1,0.8-2.5,1.3-3.9,1.3c-0.3,0-0.5,0-0.8,0
+                            		c1.4,0.9,3.1,1.4,4.9,1.4c5.8,0,9-4.8,9-8.9c0-0.1,0-0.3,0-0.4c0.6-0.4,1.2-1,1.6-1.6c-0.6,0.2-1.2,0.4-1.8,0.5
+                            		C-456.7,276.2-456.2,275.6-455.9,274.8z"/>
+                            </g>
+                            <image src="//www.tcd.ie/assets/php/tcd-header-footer/2013e/img/channels/twitter.png" xlink:href="" width="40" height="40"/>
+                        </svg>
+                    </span>
+    				<span class="tcd-footer--social-text">Twitter</span>
+    			</a>
+    		</li>
+    		<li>
+    			<a class="tcd-footer--social-linkedin" href="https://ie.linkedin.com/edu/trinity-college-dublin-13378">
+    				<span class="tcd-footer--social-icon">
+                        <svg width="40" height="40" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                        	 viewBox="-471 273.5 15.5 15.5" style="enable-background:new -471 273.5 15.5 15.5;" xml:space="preserve">
+                            <g>
+                            	<rect x="-471" y="278.7" width="3.6" height="10.3"/>
+                            	<circle cx="-469.2" cy="275.3" r="1.8"/>
+                            	<path d="M-455.5,283.3c0-2.8-0.6-4.7-3.9-4.7c-1.6,0-2.6,0.6-3,1.4l0,0v-1.3h-2.9V289h3v-5.1c0-1.4,0.3-2.7,1.9-2.7
+                            		s1.8,1.5,1.8,2.7v5h3.1V283.3z"/>
+                            </g>
+                            <image src="//www.tcd.ie/assets/php/tcd-header-footer/2013e/img/channels/linkedin.png" xlink:href="" width="40" height="40"/>
+                        </svg>
+                    </span>
+    				<span class="tcd-footer--social-text">LinkedIn</span>
+    			</a>
+    		</li>
+    	</ul>
+    </div>
+  </div>
+</div>
+<script type="text/javascript" src="//www.tcd.ie/assets/js/gataglinks.js?v=2"></script>
+ </div>
+        </div>
+    </div>
+</footer>
+</body>
+</html>
+
+0
+

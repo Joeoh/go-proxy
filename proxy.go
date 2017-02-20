@@ -11,6 +11,9 @@ import (
 	"os"
 	"sync"
 	"io"
+	"crypto/md5"
+	"encoding/hex"
+	"io/ioutil"
 )
 
 const _DEFAULTLOG = "/var/log/go-proxy.log"
@@ -303,72 +306,84 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 		sendBlockedMessage(connWriteBuffer, host)
 		return
 	}
+	oldResourceHeader := resourceHeader
 
-	remoteConn, err := connectToHost(host, port)
-	if err != nil {
-		log.Debug("Error connecting to host", err)
-		return
-	}
+	data, exists := checkCacheAndRetrieve(oldResourceHeader)
+	//Cache hit ding ding
+	if exists {
+		log.Infof("Cache HIT!!")
+		reader := bytes.NewReader(data)
+		io.Copy(conn,reader)
+	} else {
+		//Cache MISS
+		log.Infof("Cache MISS!!")
 
-	remoteConnWriter := bufio.NewWriter(remoteConn)
-
-	resourceHeader = getResourceFromHeader(resourceHeader, host, port)
-	sendClientHeadersToHost(contentBuffer, remoteConnWriter, resourceHeader)
-
-	//This code was mostly taken from here http://rodaine.com/2015/04/async-split-io-reader-in-golang/
-	pr, pw := io.Pipe()
-	tr := io.TeeReader(remoteConn, pw)
-
-	// create channels to synchronize
-	done := make(chan bool)
-	errs := make(chan error)
-	defer close(done)
-	defer close(errs)
-
-	go func() {
-		// close the PipeWriter after the
-		// TeeReader completes to trigger EOF
-		defer pw.Close()
-
-		err := cacheData(tr)
+		remoteConn, err := connectToHost(host, port)
 		if err != nil {
-			errs <- err
+			log.Debug("Error connecting to host", err)
 			return
 		}
 
-		done <- true
-	}()
+		remoteConnWriter := bufio.NewWriter(remoteConn)
+		resourceHeader = getResourceFromHeader(resourceHeader, host, port)
+		sendClientHeadersToHost(contentBuffer, remoteConnWriter, resourceHeader)
 
-	go func() {
-		_, err := io.Copy(conn, pr)
-		if err != nil {
-			errs <- err
-			return
+		//The below code was mostly taken from here http://rodaine.com/2015/04/async-split-io-reader-in-golang/
+		pr, pw := io.Pipe()
+		tr := io.TeeReader(remoteConn, pw)
+
+		// create channels to synchronize
+		done := make(chan bool)
+		errs := make(chan error)
+		defer close(done)
+		defer close(errs)
+
+		go func() {
+			_, err := io.Copy(conn, pr)
+
+			if err != nil {
+				errs <- err
+				return
+			}
+
+			done <- true
+		}()
+
+		go func() {
+			// close the PipeWriter after the
+			// TeeReader completes to trigger EOF
+			defer pw.Close()
+
+			_, err := cacheData(tr, oldResourceHeader)
+			if err != nil {
+				errs <- err
+				return
+			}
+
+			done <- true
+		}()
+
+		// wait until both are done
+		// or an error occurs
+		for c := 0; c < 2; {
+			select {
+			case <-errs:
+				return
+			case <-done:
+				c++
+			}
 		}
 
-		done <- true
-	}()
-
-	// wait until both are done
-	// or an error occurs
-	for c := 0; c < 2; {
-		select {
-		case <-errs:
-			return
-		case <-done:
-			c++
-		}
 	}
-
-	//Copy remote conn into client
-	//io.Copy(conn, remoteConn)
 }
 
-func cacheData(data io.Reader) (err error) {
-	//TODO: Analyse data in here and add it to the cache if it can be cached
+//Determine if the given data should be cached andCache the given data- returns a bool saying if it was cached or not
+func cacheData(data io.Reader, resourceName string) (bool, error) {
 	br := bufio.NewReader(data)
+	var contentBuffer bytes.Buffer
 
 	shouldCache := false
+	cacheLine := ""
 
 	for {
 		line, err := br.ReadString('\n')
@@ -377,21 +392,99 @@ func cacheData(data io.Reader) (err error) {
 			break
 		}
 
-		if strings.HasPrefix(line, "Cache-Control: ") {
-			shouldCache = checkCacheHeader(line)
-			if !shouldCache {
-				//The data has headers which indicate not to cache - no need to go on
-				return
+		contentBuffer.WriteString(line)
+
+		if strings.HasPrefix(line, "HTTP/1.1: ") {
+			if checkHTTPStatusCodeForCache(line) {
+
 			}
 		}
+		if strings.HasPrefix(line, "Cache-Control: ") {
+			cacheLine = line
+			shouldCache = checkCacheHeader(cacheLine)
+
+
+		}
+
 	}
 
-	if shouldCache {
-
+	//Copy remaining data after headers
+	for {
+		curByte, err := br.ReadByte()
+		if err != nil {
+			break
+		}
+		contentBuffer.WriteByte(curByte)
 	}
 
-	return
+	writeCacheItem(resourceName, contentBuffer)
+
+	return shouldCache, nil
 }
+func checkHTTPStatusCodeForCache(header string) bool {
+	r := strings.NewReplacer("HTTP/1.1 : ", "", "\r\n", "")
+	codeString := r.Replace(header)
+
+	if strings.HasPrefix(codeString, "200") {
+
+	}
+
+	return false
+}
+
+
+
+func getMD5Hash(text string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(text))
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func writeCacheItem(resourceName string, content bytes.Buffer){
+	resourceName = getMD5Hash(resourceName)
+	log.Debugf("MD5: %v", resourceName)
+	f, err := os.Create("cache/"+resourceName)
+	defer f.Close()
+
+	if err != nil {
+		log.Error("Could not create file" ,err)
+	}
+
+	for {
+		line, err := content.ReadString('\n')
+		if err != nil {
+			break
+		}
+		f.WriteString(line)
+	}
+}
+
+func checkCacheHit(resourceName string) bool {
+	hash := getMD5Hash(resourceName)
+
+	if _, err := os.Stat("cache/"+hash); os.IsNotExist(err) {
+		return false
+	}
+	log.Infof("Hit for : %v", hash)
+	return true
+}
+
+//False if no data -
+func checkCacheAndRetrieve(resourceName string) ([]byte, bool) {
+	hash := getMD5Hash(resourceName)
+
+	if !checkCacheHit(resourceName) {
+		return nil, false
+	}
+
+	b, err := ioutil.ReadFile("cache/"+hash) // just pass the file name
+
+	if err != nil {
+		return nil, false
+	}
+	return  b, true
+}
+
 
 func isCacheValue(value string) (bool) {
 	if value == "no-cache" || value == "max-age=0" || value == "private" {

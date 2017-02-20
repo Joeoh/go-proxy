@@ -1,0 +1,919 @@
+HTTP/1.1 200 OK
+Date: Mon, 20 Feb 2017 03:41:41 GMT
+Server: Apache/2.4.25
+Cache-Control: public
+Last-Modified: Tue, 18 Oct 2016 09:12:37 GMT
+Connection: close
+Transfer-Encoding: chunked
+Content-Type: text/javascript; charset=utf-8
+
+281c
+//<script>
+
+/* equalizeRows v1.0.1 https://github.com/davesmiths/equalizerows */
+(function($) {
+
+    'use strict';
+
+    var runEachVectorOf,
+		activeCollections,
+        delay,
+       	timeoutID,
+		eachRowOf,
+		eachColOf;
+
+	// activeCollections, to collect all the elements that can passed so they can be updated on window.resize efficiently
+	delay = 100;
+	activeCollections = [];
+
+
+    runEachVectorOf = function(o) {
+
+		// There are two types of vector (row or column):
+/*
+
+		o.type
+		-1: off, all items are in the row
+		0: Only items that start at the same point are in the row (default)
+		1: starts
+		2: starts and ends
+		3: ends
+
+*/
+
+
+
+    	var currentTop,
+			items,
+			spareTops,
+			currentTallest,
+			collection,
+			collectionLength,
+			collectionOuterLengths,
+			collectionTops,
+			$item,
+			thisTop,
+			thisTall,
+			currentRowBottom,
+			i,
+			leftOrTop,
+			outerWidthOrHeight;
+
+		o.resize.call(o.collection);
+
+		// Set left or top, outerHeight or outerWidth dependent on whether the vector is row or column
+		leftOrTop = 'top';
+		outerWidthOrHeight = 'outerHeight';
+		if (o.vector === 'col') {
+			leftOrTop = 'left';
+			outerWidthOrHeight = 'outerWidth';
+		}
+
+		collection = o.collection.slice();
+		collectionLength = collection.length;
+
+	    // While there are items in the collection
+		while (collectionLength) {
+
+			items = [];
+			spareTops = [];
+			collectionTops = [];
+			collectionOuterLengths = [];
+
+			if (o.type === -1) {
+				// All items are in the vector
+				items = collection;
+			}
+			else {
+
+				// Find the items aligned at the start of the vector
+				// The following takes into account that source order doesn't equal visual order
+				currentTop = Number.POSITIVE_INFINITY;
+
+				for (i = 0; i < collectionLength; i += 1) {
+
+					$item = $(collection[i]);
+
+					thisTop = collectionTops[i] = $item.offset()[leftOrTop];
+					thisTall = collectionOuterLengths[i] = $item[outerWidthOrHeight]();
+
+					if (thisTop < currentTop) {
+						currentTop = thisTop;
+						items = [];
+						currentTallest = 0;
+					}
+
+					if (thisTop === currentTop) {
+						items.push(collection[i]);
+						if (currentTallest < thisTall) {
+							currentTallest = thisTall;
+						}
+					}
+
+				}
+				currentRowBottom = currentTop + currentTallest;
+
+				// Now find the extra ones if they exist
+				if (o.type !== 0) {
+
+					if (o.type === 1 || o.type === 2) {
+
+						// Find items that start within the tallest
+						// Loop through all items except those that appear at the top
+						for (i = 0; i < collectionLength; i += 1) {
+
+							// Only work with items not already in the row
+							if ($.inArray(collection[i],items) < 0) {
+
+								thisTop = collectionTops[i];
+
+								if (thisTop < currentRowBottom) {
+									if (o.type === 2) {
+										if (thisTop + collectionOuterLengths[i] <= currentRowBottom) {
+											items.push(collection[i]);
+											spareTops.push([thisTop,collection[i]]);
+										}
+									}
+									else {
+										items.push(collection[i]);
+										spareTops.push([thisTop,collection[i]]);
+									}
+								}
+							}
+						}
+					}
+					else {
+						// type === 3
+						// Find items that start within the tallest
+						// Loop through all items except those that appear at the top
+						for (i = 0; i < collectionLength; i += 1) {
+
+							// Only work with items not already in the row
+							if ($.inArray(collection[i],items) < 0) {
+
+								thisTop = collectionTops[i] + collectionOuterLengths[i];
+
+								if (thisTop <= currentRowBottom) {
+									items.push(collection[i]);
+									spareTops.push([collectionTops[i],collection[i]]);
+								}
+							}
+						}
+					}
+				}
+			}
+
+
+			// Do the callback for each row
+			o.fn.call(items);
+
+//console.log(o.vector, spareTops, items);
+			// Check items to see if any of the start positions has changed
+			// If has changed then the item needs to be added back in to be re-evaluated
+			for (i = 0; i < spareTops.length; i++) {
+    			if (spareTops[i][0] !== $(spareTops[i][1]).offset()[leftOrTop]) {
+    			    items = $(items).not(spareTops[i][1]);
+    			}
+			}
+
+			// Continue with whatever is left
+			collection = $(collection).not(items);
+			collectionLength = collection.length;
+
+		}
+
+		// Run the callback
+		o.callback.call(o.collection);
+
+    	return this;
+
+    };
+
+
+    eachRowOf = function(o) {
+
+        var $waits,
+            $waitsLength;
+
+		// Sensible defaults
+		o.vector = o.vector || 'row';
+		o.type = o.type === undefined ? 0 : o.type; // normal or compact or supercompact, may change to 0,1,2
+		o.active = o.active === undefined ? false : o.active;
+		o.fn = o.fn || function() {};
+		o.resize = o.resize || function() {};
+		o.callback = o.callback || function() {};
+		o.wait = o.wait || '';
+
+		o.collection = this;
+
+        $waits = $(o.wait);
+        $waitsLength = $waits.length;
+        if ($waitsLength) {
+            $waits.each(function() {
+                $(this).data('equalizerows-wait', true);
+            }).on('resized', function() {
+                runEachVectorOf(o);
+            });
+        }
+        else if (o.active) {
+			activeCollections.push(o);
+		}
+        if ($waitsLength === 0) {
+    		runEachVectorOf(o);
+        }
+
+    	return this;
+
+    };
+
+
+    eachColOf = function(o) {
+
+		o.vector = 'col';
+		eachRowOf.call(this, o);
+    	return this;
+
+    };
+
+
+	// Add window resize event and buffer the calls to prevent a potential overflow of calls to runEachVectorOf
+	$(window).on('resize.equalizerows', function() {
+		clearTimeout(timeoutID);
+		timeoutID = setTimeout(function() {
+			var activeCollectionsLength = activeCollections.length,
+				i;
+			for (i = 0; i < activeCollectionsLength; i += 1) {
+				runEachVectorOf(activeCollections[i]);
+			}
+		}, delay);
+	});
+
+
+	// Equalize Rows
+	$.fn.equalizeRows = function(o) {
+
+		var propertyIsNotArray,
+			propertyLength,
+			i,
+			self = this,
+            $waits,
+            $waitsLength;
+
+		o = o || {};
+
+		// Sensible defaults
+		o.type = o.type === undefined ? 0 : o.type; // 0,1,2,3
+		o.colType = o.colType === undefined ? 0 : o.colType; // 0,1,2,3
+		o.applyTo = o.applyTo === undefined ? 'last' : o.applyTo; // all, first
+		o.property = o.property === undefined ? 'height' : o.property; // 'padding-top,padding-bottom', 'padding-top', 'padding-bottom', 'height' // or maybe at some point a function but needs more consideration
+		o.active = o.active === undefined ? false : o.active;
+		o.here = o.here === undefined ? undefined : o.here;
+		o.callback = o.callback || function() {};
+		o.wait = o.wait || '';
+
+		propertyIsNotArray = $.type(o.property) !== 'array';
+		if (propertyIsNotArray) {
+			o.property = o.property.split(',');
+		}
+		propertyLength = o.property.length;
+
+		$(self).each(function() {
+		    if ($(this).data('uid.equalizerows') === undefined) {
+        		$(this).data('uid.equalizerows', self);
+		    }
+		});
+
+		if ($(this).length) {
+
+			eachRowOf.call(this, {
+				type:o.type,
+				active:o.active,
+				wait:o.wait,
+				fn:function() {
+
+
+					var $row = $(this),
+						rowBottom = 0,
+						rowTallests;
+
+					// Find all the items in the row which extend the furthest down the page (the row tallests)
+					rowTallests = [];
+					$row.each(function() {
+
+						var $this = $(this),
+							offsetBottom;
+
+						offsetBottom = Math.round($this.offset().top + $this.outerHeight());
+
+						if (offsetBottom > rowBottom) {
+							rowTallests = [this];
+							rowBottom = offsetBottom;
+						}
+						else if (offsetBottom === rowBottom) {
+							rowTallests.push(this);
+						}
+
+					});
+
+					// Now work with each column in the row
+					eachColOf.call(this, {
+						type:o.colType,
+						fn:function() {
+
+							var $colTallest,
+								$colTallestHere,
+								diff,
+								colBottom,
+								$items,
+								$itemsLength,
+								$col;
+
+							$col = $(this);
+
+							// Check if this column needs equalizing
+							if ($col.is(rowTallests) === false) {
+
+								// It does, now do the do
+
+								// Find bottom of column
+								colBottom = 0;
+								$col.each(function() {
+
+									var $this = $(this),
+										offsetBottom;
+
+									offsetBottom = Math.round($this.offset().top + $this.outerHeight());
+									if (offsetBottom > colBottom) {
+										$colTallest = $(this);
+										colBottom = offsetBottom;
+									}
+
+								});
+
+								diff = rowBottom - colBottom;
+
+								if (o.applyTo === 'last') {
+									if ($colTallest) {
+										$items = $colTallest;
+									}
+								}
+								else if (o.applyTo === 'all') {
+									$items = $col;
+								}
+								else if (o.applyTo === 'first') {
+									$items = $col.eq(0);
+								}
+
+								$colTallestHere = o.here ? $colTallest.find(o.here) : $colTallest;
+
+								if ($items) {
+									$itemsLength = $items.length;
+									$items.each(function() {
+										var $thisHereNow = o.here ? $(this).find(o.here) : $(this);
+										for (i = 0; i < propertyLength; i += 1) {
+											$thisHereNow.css(o.property[i], parseInt($thisHereNow.css(o.property[i]), 10) + (diff / (propertyLength * $itemsLength)) + 'px');
+										}
+									});
+								}
+
+							}
+
+
+						}
+					});
+				},
+				resize: function() {
+					// Reset CSS
+					$(this).each(function() {
+
+                        var $this = o.here ? $(this).find(o.here) : $(this),
+						    uid = $(this).data('uid.equalizerows');
+						if (uid === self && $this.data('equalizerows-wait') !== true) {
+        					for (i = 0; i < propertyLength; i += 1) {
+        						$this.css(o.property[i], '');
+        					}
+						}
+
+					});
+				},
+				callback: o.callback
+			});
+
+		}
+
+	};
+
+    /*
+		Troubleshooting
+
+		Web fonts can be awkward as they load later than the rest of the page. This can be remedied by triggering window resize handlers once they are loaded.
+
+		Height of link wasn't correct and too short. Turned out that the link contained images which hadn't had the height set. Once they did all was well.
+
+	*/
+}(jQuery));
+
+/*
+
+Web Font Funs
+---------
+```
+Example
+// Web Font Loader by Typekit and Google
+// https://github.com/typekit/webfontloader
+var WebFontConfig = {
+	google: {
+		families: [
+			'Merriweather:300,400italic,400:latin'
+			,'Open+Sans:400,600,600italic,700,700italic,400italic,300,300italic'
+		]
+	}
+	,active: function() {
+		$(function() {
+			$(window).triggerHandler('resize.equalizerows');
+		});
+	}
+};
+```
+*/
+
+31b3
+
+$(function() {
+	$('#ghpmainslider').each(function(a,b) {
+		//console.log(a);
+		$(this).royalSlider({
+			transitionType: 'fade',
+			transitionSpeed: 1000,
+			sliderTouch: false,
+			sliderDrag: false,
+			autoPlay: {
+				// autoplay options go gere
+				enabled: true,
+				pauseOnHover: false,
+				delay: 8000
+			},
+			controlNavigation: 'none',
+			arrowsNav: false,
+			imageScaleMode: 'fill',
+			autoScaleSlider: false,
+			autoHeight: false,
+			loop: true
+		});
+	});
+	$('#newsslider').each(function(a,b) {
+		//console.log(a);
+		$(this).royalSlider({
+			transitionType: 'slide',
+			transitionSpeed: 100,
+			autoPlay: {
+				// autoplay options go gere
+				enabled: false,
+				pauseOnHover: true,
+				delay: 5000
+			},
+			arrowsNavAutoHide: false,
+			loop: true,
+			slidesSpacing: 0
+		});
+	});
+});
+
+$(function() {
+
+    'use strict';
+
+    $($('[data-equalizerows]').get().reverse()).each(function() {
+
+        var $this = $(this),
+            selector = $this.data('equalizerows');
+
+        // Prevent multiple initiations so this code snippet can be reused as and when
+        if ($this.data('equalizerows-initiated') === undefined) {
+
+            $this.data('equalizerows-initiated', true);
+
+            if (selector) {
+                $this.find(selector).equalizeRows({
+                    type:$this.data('equalizerows-type'),
+                    // Active defaults to off
+                    //active:$this.is('[data-equalizerows-active]') && $this.data('equalizerows-active') !== false ? true : false,
+                    // Active defaults to on
+                    active:$this.is('[data-equalizerows-active]') && $this.data('equalizerows-active') === false ? false : true,
+                    property:$this.data('equalizerows-property'),
+                    here:$this.data('equalizerows-here'),
+                    colType:$this.data('equalizerows-colType'),
+                    applyTo:$this.data('equalizerows-applyTo'),
+                    wait:$this.data('equalizerows-wait'),
+					callback: function() {
+
+						// this; // this is the whole collection, i.e., .stuff
+
+						// The following detects a RoyalSlider instance and calls its resize function
+						$(this).each(function() {
+//							console.log(this);
+							var royalSlider = $(this).data('royalSlider');
+							if (royalSlider && royalSlider.updateSliderSize) {
+								royalSlider.updateSliderSize();
+							}
+						});
+
+					}
+                });
+            }
+        }
+    });
+
+});
+
+// JAVASCRIPT FOR THE GHP 2014
+
+using(tms.SERVER_DOCROOT_NET + '/assets/js/jquery-visible/teamdf/jquery.visible.min.js', function() {
+
+    $(function() {
+
+        var delay = 100,
+            run,
+            runBuffer,
+            tid,
+            animateNum;
+
+
+		function easeInCubic(t) {
+			return Math.pow(t,3);
+		}
+		function easeOutCubic(t) {
+			return 1 - easeInCubic(1 - t);
+		}
+
+		animateNum = function($num, $units, callback) {
+
+			var frames = 100,
+				fpsDelay = 5,
+				toid,
+				frame = 0,
+				units = $units.length ? $units.text() : '',
+				num = parseInt($num.text().replace(',', ''), 10),
+				animate;
+
+			$num.text('0').css({zIndex:0});
+
+			animate = function() {
+
+				var mynum, output, start;
+
+			 	mynum = Math.floor(easeOutCubic(frame/frames) * num) + '';
+				output = '';
+				start = 0;
+
+				// Commas
+				do {
+					start = start + 3;
+					output = mynum.substr(-start, 3) + (output === '' ? '' : ',') + output;
+				}
+				while (mynum.length - start > 3);
+				if (mynum.length > start) {
+					output = mynum.substr(0, mynum.length - start) + ',' + output;
+				}
+
+				$num.text(output + units);
+
+				if (frame === frames) {
+					clearTimeout(toid);
+					callback();
+				}
+				else {
+					frame += 1;
+					toid = setTimeout(function() {
+						animate();
+					}, fpsDelay);
+				}
+			};
+			animate();
+		};
+
+
+        // Prevent unnecessary calls to run
+        animBuffer = function() {
+        };
+
+        run = function() {
+
+			var $facts;
+
+			$facts = $('.facts').addClass('facts-prime');
+
+			$('.facts').each(function() {
+
+				var $this, $num, callback;
+
+				$this = $(this);
+				$num = $this.find('.facts-number');
+				callback = function() {
+					setTimeout(function() {
+						$this.addClass('facts-animate2');
+					}, 250);
+				};
+
+				if ($this.visible() && $this.hasClass('facts-animate') === false) {
+
+					$this.addClass('facts-animate');
+
+					if ($num.length) {
+						factsNum = animateNum($num, $num.find('.facts-number-unit'), callback);
+					}
+					else {
+						callback();
+					}
+
+				}
+
+			});
+
+        };
+
+        // Prevent unnecessary calls to run
+        runBuffer = function() {
+            clearTimeout(tid);
+            tid = setTimeout(function() {
+                run();
+            }, delay);
+        };
+		run();
+
+        $(window).on('scroll', runBuffer);
+
+    });
+
+});
+
+
+  WebFontConfig = {
+    google: { families: [ 'Merriweather:400italic,400:latin' ] }
+  };
+  (function() {
+    var wf = document.createElement('script');
+    wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
+      '://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js';
+    wf.type = 'text/javascript';
+    wf.async = 'true';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(wf, s);
+  })();
+
+
+
+
+
+
+
+
+//console.log(html);
+
+// To be revised, gcal connection
+if (typeof html !== 'undefined' && html !== '' && html !== '<ul></ul>') {
+	$(function() {
+		$('html').addClass('j');
+		//alert(html);
+		var more = 'More',
+			less = 'Less',
+			description_li = $('div.events-content').html(html).find('li:has(div.description)');
+
+		/** /
+		description_li.find('.info2').prepend(' <a href="#" title="Show the event description" class="description-toggle">'+more+'</a>');
+
+		$('div.events-content').delegate('a.description-toggle', 'click', function() {
+			var $this = $(this),
+				closest_li = $this.closest('li');
+			// YouTube
+			closest_li.find('a[href*="youtube.com/watch"]').each(function() {
+				var $this = $(this);
+				var width = $this.closest('div').width();
+				var height = Math.ceil(width/16*9) + 30;
+				var video_code = $this.attr('href').replace(/^.*?v=/, '');
+				$this.replaceWith('<div class="iframe-wrap" style="width:100%;height:'+height+'px;"><iframe title="' + $this.text() + '" width="' + width + '" height="' + height + '" style="width:100%;" src="http://www.youtube.com/embed/' + video_code + '?fs=1&showinfo=0&rel=0" frameborder="0"></iframe></div>');
+			});
+			// Image
+			closest_li.find('a[href$=".jpg"]').each(function() {
+				var $this = $(this);
+				var width = $this.closest('div').width();
+				var href = $this.attr('href');
+				$this.replaceWith('<img src="' + href + '" alt="' + $this.text() + '" />');
+			});
+			// Description
+			// The following may seem elaborate for a show/hide toggle but it is to avoid
+			// iframes (YouTube) from slowing the animation.
+			var description_open = closest_li.find('div.description').is('.open');
+			if (description_open) {
+				$this.html(' ' + more);
+				closest_li.find('iframe').css({display:'none'});
+				closest_li.find('div.description').removeClass('open').animate({height:'toggle'}, {duration: 200});
+			}
+			else {
+				$this.html(' ' + less);
+				closest_li.find('div.description').animate({height:'toggle'}, {duration: 200, complete: function() {
+					$(this).addClass('open');
+					closest_li.find('iframe').css({display:'block'});
+				}});
+			}
+			return false;
+		});
+		/**/
+	});
+}
+
+
+// Make video iframes fluid
+// by github.com/davesmiths
+// Uses the iframe width and height attributes to determine the iframe ratio
+// Adds a width of 100%
+// Adds a max-width of the iframe width in px if no CSS width has already been applied
+// Calculates the height and applies in px
+// Uses window.onresize to redraw accordingly
+// window.resize throttled to prevent too many calls
+$(function() {
+
+	'use strict';
+
+	var $videos = $('iframe[src^="//www.youtube.com"]'),
+		timeoutID,
+		run;
+
+	$videos.each(function() {
+		var $this, widthAttVal, heightAttVal, width;
+
+		$this = $(this);
+		widthAttVal = $this.attr('width');
+		heightAttVal = $this.attr('height');
+		width = $this.width();
+
+		if (width === widthAttVal) {
+			// Assume no CSS has been applied and apply a max-width to maintain current video size rather than force width 100%
+			$this.css('max-width', widthAttVal + 'px');
+		}
+		$this.data('ratio', widthAttVal / heightAttVal).css({width:'100%'});
+
+	});
+
+	run = function() {
+
+		$videos.each(function() {
+
+			var $this, outerWidth, ratio;
+
+			$this = $(this);
+			outerWidth = $this.outerWidth();
+			ratio = $this.data('ratio');
+
+
+			$this.css('height', outerWidth / ratio + 'px');
+
+
+		});
+		$videos.trigger('resized');
+	};
+
+	// Add window resize event and buffer the calls to prevent a potential overflow of calls to runEachVectorOf
+	$(window).on('resize', function() {
+		clearTimeout(timeoutID);
+		timeoutID = setTimeout(function() {
+			run();
+		}, 200);
+	}).resize();
+
+
+});
+
+
+
+
+// Google Analytics Events: Trinity Homepage Mid 2014
+(function(context) {
+
+	$(function() {
+
+		'use strict';
+
+		var category,typeOf,$linkHero;
+
+		typeOf = function(o) {
+			return ({}).toString.call(o).match(/\s([a-zA-Z]+)/)[1].toLowerCase();
+		};
+
+		//category = 'testdata'
+		category = 'Trinity Homepage Mid 2014';
+
+		// Trinity Homepage Whats Happening graphic link clicked
+		$('.section-whatshappening .link-graphic').on('click', function(e) {
+			e.preventDefault();
+
+			var action = 'Trinity Homepage Whats Happening graphic link clicked',
+				$link = $(this),
+				href = $link[0].href,
+				label = href.replace('https://','').replace('http://','');
+
+			if (typeOf(context.ga) === 'function') {
+				context.ga('tcd.send','event',category,action,label);
+			}
+
+			// Increase chances of the event being captured
+			setTimeout(function(){document.location.href = href;},250);
+
+		});
+
+		// Trinity Homepage Whats Happening text link clicked
+		$('.section-whatshappening .link:not(.link-graphic)').on('click', function(e) {
+			e.preventDefault();
+
+			var action = 'Trinity Homepage Whats Happening text link clicked',
+				$link = $(this),
+				href = $link[0].href,
+				label = href.replace('https://','').replace('http://','');
+
+			if (typeOf(context.ga) === 'function') {
+				context.ga('tcd.send','event',category,action,label);
+			}
+
+			// Increase chances of the event being captured
+			setTimeout(function(){document.location.href = href;},250);
+		});
+
+		// Trinity Homepage main static link clicked
+		$('.link-e-news,.link-section-study,.link-e').on('click', function(e) {
+			e.preventDefault();
+
+			//console.log(this.href);
+			var action = 'Trinity Homepage main static link clicked',
+				$link = $(this),
+				href = $link[0].href,
+				label = href.replace('https://','').replace('http://','');
+
+			if (typeOf(context.ga) === 'function') {
+				context.ga('tcd.send','event',category,action,label);
+			}
+
+			// Increase chances of the event being captured
+			setTimeout(function(){document.location.href = href;},250);
+		});
+
+		// Trinity Homepage Main News Events Slider link clicked
+		$('#newsslider').on('click', 'a', function(e) {
+			e.preventDefault();
+			//console.log($(this).closest('.royalSlider'));
+
+			var action = 'Trinity Homepage Main News Events Slider link clicked',
+				$link = $(this),
+				href = $link[0].href,
+				label = href.replace('https://','').replace('http://','');
+
+			if (typeOf(context.ga) === 'function') {
+				context.ga('tcd.send','event',category,action,label);
+			}
+
+			// Increase chances of the event being captured
+			setTimeout(function(){document.location.href = href;},250);
+		});
+
+		// Trinity Homepage Hero Component link clicked
+		$linkHero = $('.link-hero');
+		if ($linkHero.length) {
+
+			$linkHero.on('click', function(e) {
+				e.preventDefault();
+
+				var action = 'Trinity Homepage Hero Component link clicked',
+					$link = $(this),
+					defaultHref = 'Hero not linked',
+					href = $link[0].href || defaultHref,
+					label = href.replace('https://','').replace('http://','');
+
+				if (typeOf(context.ga) === 'function') {
+					context.ga('tcd.send','event',category,action,label);
+				}
+
+				if (href !== defaultHref) {
+					// Increase chances of the event being captured
+					setTimeout(function(){document.location.href = href;},250);
+				}
+			});
+
+			// Capture clicks on the image, not
+			$('#ghpmainslider').on('click', function() {
+				var action = 'Trinity Homepage Hero Component unlinked image clicked',
+					$link = $linkHero,
+					defaultHref = 'Hero not linked',
+					href = $link[0].href || defaultHref,
+					label = href.replace('https://','').replace('http://','');
+
+				if (typeOf(context.ga) === 'function') {
+					context.ga('tcd.send','event',category,action,label);
+					// console.log('tcd.send','event',category,action,label);
+				}
+			});
+
+		}
+	});
+}(this));
+
+0
+

@@ -1,0 +1,22 @@
+HTTP/1.1 200 OK
+Date: Mon, 20 Feb 2017 03:42:04 GMT
+Server: Apache/2.4.25
+Cache-Control: public
+Last-Modified: Fri, 27 Jun 2014 11:55:07 GMT
+Content-Length: 420
+Connection: close
+Content-Type: text/javascript; charset=utf-8
+
+//<script>
+
+WebFontConfig = {
+google: { families: [ 'Merriweather:400italic,400:latin' ] }
+};
+(function() {
+var wf = document.createElement('script');
+wf.src = ('https:' == document.location.protocol ? 'https' : 'http') +
+  '://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js';
+wf.type = 'text/javascript';
+wf.async = 'true';
+var s = document.getElementsByTagName('script')[0];
+s.parentNode.insertBefore(wf, s);

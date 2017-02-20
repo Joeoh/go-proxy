@@ -1,0 +1,14 @@
+HTTP/1.1 200 OK
+Date: Mon, 20 Feb 2017 03:41:41 GMT
+Server: Apache/2.4.25
+Last-Modified: Tue, 26 Apr 2016 13:36:54 GMT
+ETag: "84-5316362eae70d"
+Accept-Ranges: bytes
+Content-Length: 132
+Connection: close
+Content-Type: text/css
+
+.tcd-search-app-links .selected-text {position:absolute;left:-9999px;} /* Links selected get extra text for accessibility */
+
+
+

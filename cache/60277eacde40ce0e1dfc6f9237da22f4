@@ -1,0 +1,109 @@
+HTTP/1.1 200 OK
+Date: Mon, 20 Feb 2017 03:40:55 GMT
+Server: Apache
+Last-Modified: Thu, 03 Sep 2009 16:49:58 GMT
+ETag: "8870-86a-472af2c7bd980"
+Accept-Ranges: bytes
+Content-Length: 2154
+Keep-Alive: timeout=15, max=100
+Connection: Keep-Alive
+Content-Type: application/javascript
+Set-Cookie: NSC_WJQ-SFWFOVF-IUUQ=ffffffffaf1a9d1245525d5f4f58455e445a4a4229a0;expires=Mon, 20-Feb-2017 03:42:55 GMT;path=/;httponly
+
+$().ready(function(){
+				    var GNSitem = $("#gns li");
+    GNSitem.hover(function(){
+        $(this).addClass('onhov');
+        }, function() {
+		$(this).removeClass('onhov');
+	});
+	
+	LanguageURL();
+
+    $("#LNS ul").hide();
+    var currLoc = window.location.toString();
+    var index = currLoc.indexOf("//");
+    index = currLoc.indexOf("/",index+2);
+    currLoc = currLoc.substring(index);
+    var item = $("#LNS a[href='"+currLoc+"']");
+    if(item.length > 0)
+    {
+        item.each(function(){
+            SelectItem(this);            
+        });
+    }
+    else
+    {
+		var item = $("#bcrumbs a:last");
+		if(item.length > 0){
+
+			currLoc = $("#bcrumbs a:last").attr("pathname").toString(); 
+			if(currLoc[0] != "/")
+			{
+				currLoc  = "/"+currLoc;
+			}
+			item = $("#LNS a[href='"+currLoc+"']");
+			if(item.length == 0)
+			{
+				var items = $("#bcrumbs a");
+				var item = null;
+				for(var i=(items.length-1);i>=0;i--)
+				{
+					item = items[i];
+					currLoc = $(item).attr("pathname").toString();
+					if(currLoc[0] != "/")
+						currLoc  = "/"+currLoc;
+	                    
+					item = $("#LNS a[href='"+currLoc+"']");
+									    
+					if(item.length >0)
+					{
+						$(item).each(function(){
+							SelectItem(this);
+						});
+						break;
+					}
+				}
+			}
+			else{
+				item.each(function(){
+					SelectItem(this);
+				});       
+				}
+          }
+    }
+});
+
+function SelectItem(item)
+{
+     $(item).addClass("on").parents("#LNS li").addClass("on");
+     $(item).siblings("ul").show();
+     $(item).parents("ul").show();
+}
+
+function LanguageURL()
+{
+	pathArray = window.location.pathname.split('/');
+	if(pathArray[1] == "en")
+		{pathArray[1] = "ga";}
+		else if(pathArray[1] == "ga")
+			{pathArray[1] = "en";}
+	newPathname = "";
+	for (i=1; i<pathArray.length; i++ ) {
+		newPathname += "/";
+		newPathname += pathArray[i];
+		}
+	if(document.getElementById("language")!=null)
+		{document.getElementById("language").href=newPathname;}	
+	if(document.getElementById("en-404")!=null)
+		{document.getElementById("en-404").href=newPathname;}	
+	if(document.getElementById("ga-404")!=null)
+		{document.getElementById("ga-404").href=newPathname;}	
+}<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>400 Bad Request</title>
+</head><body>
+<h1>Bad Request</h1>
+<p>Your browser sent a request that this server could not understand.<br />
+</p>
+</body></html>

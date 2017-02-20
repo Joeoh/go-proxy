@@ -1,0 +1,40 @@
+HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Access-Control-Allow-Credentials: false
+Content-Type: text/javascript
+ETag: "d5f486e8c2e560dc5b0182c6c40accf6"
+Last-Modified: Tue, 15 Nov 2016 05:01:55 GMT
+Server: nginx
+x-amz-id-2: 6DRMM/+grp/UGD5RTKS6kW4YbBsI5F38VOkHhrVrMkbCtcZp9ln0Gu6iO+9oJjqowZkAn8stvpU=
+x-amz-meta-md5-hash: d5f486e8c2e560dc5b0182c6c40accf6
+x-amz-request-id: 77796A72ECAAEA85
+x-amz-version-id: null
+Content-Length: 165
+Cache-Control: public, max-age=300
+Expires: Mon, 20 Feb 2017 03:46:44 GMT
+Date: Mon, 20 Feb 2017 03:41:44 GMT
+Connection: keep-alive
+
+/** 
+ * HubSpot Analytics Tracking Code Build Number 1.134
+ * Copyright 2016 HubSpot, Inc.  http://www.hubspot.com
+ */
+var _hsq = _hsq || [];
+var _paq = _paq || [];
+HTTP/1.0 400 Bad Request
+Server: AkamaiGHost
+Mime-Version: 1.0
+Content-Type: text/html
+Content-Length: 216
+Expires: Mon, 20 Feb 2017 03:41:44 GMT
+Date: Mon, 20 Feb 2017 03:41:44 GMT
+Connection: close
+
+<HTML><HEAD>
+<TITLE>Bad Request</TITLE>
+</HEAD><BODY>
+<H1>Bad Request</H1>
+Your browser sent a request that this server could not understand.<P>
+Reference&#32;&#35;7&#46;d659dd58&#46;1487562104&#46;0
+</BODY>
+</HTML>
