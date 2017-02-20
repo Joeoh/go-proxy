@@ -14,6 +14,8 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"io/ioutil"
+	"flag"
+	"net/http"
 )
 
 const _DEFAULTLOG = "/var/log/go-proxy.log"
@@ -51,7 +53,7 @@ func addToBlacklist(item string) {
 	blacklist.Unlock()
 }
 
-func removeFromBlacklist(item string){
+func removeFromBlacklist(item string) {
 	blacklist.Lock()
 	blacklist.m[item] = false
 	blacklist.Unlock()
@@ -572,14 +574,12 @@ func handleHTTPS(conn net.Conn, reader *bufio.Reader, writer *bufio.Writer) {
 	go io.Copy(conn, remoteConn)
 }
 
-
 func getDomainFromCommand(command string) string {
-	r := strings.NewReplacer("unblock ","", "block ", "", "\r\n", "")
+	r := strings.NewReplacer("unblock ", "", "block ", "", "\r\n", "")
 	return r.Replace(command)
 }
 
-
-func handleManagementConsoleMessage(conn net.Conn){
+func handleManagementConsoleMessage(conn net.Conn) {
 	connReader := bufio.NewReader(conn)
 	connWriter := bufio.NewWriter(conn)
 
@@ -596,20 +596,19 @@ func handleManagementConsoleMessage(conn net.Conn){
 		if strings.HasPrefix(line, "block ") {
 			domain := getDomainFromCommand(line)
 			addToBlacklist(domain)
-			connWriter.WriteString("Blocked: " + domain+"\n")
+			connWriter.WriteString("Blocked: " + domain + "\n")
 			connWriter.Flush()
 		}
 
 		if strings.HasPrefix(line, "unblock ") {
 			domain := getDomainFromCommand(line)
 			removeFromBlacklist(domain)
-			connWriter.WriteString("Unblocked: " + domain+"\n")
+			connWriter.WriteString("Unblocked: " + domain + "\n")
 			connWriter.Flush()
 		}
 
 	}
 }
-
 
 func managementConsoleHandler() {
 	lnaddr, err := net.ResolveTCPAddr("tcp", ":8081")
@@ -637,9 +636,39 @@ func managementConsoleHandler() {
 }
 
 
+var addr = flag.String("addr", ":8081", "http service address")
+
+func serveHome(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.Error(w, "Not found", 404)
+		return
+	}
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+	http.ServeFile(w, r, "home.html")
+}
+
+func setupWebsockets() {
+	flag.Parse()
+	hub := newHub()
+	go hub.run()
+	http.HandleFunc("/", serveHome)
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		serveWs(hub, w, r)
+	})
+
+	err := http.ListenAndServe(*addr, nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
+}
+
 func main() {
 	configureLogging()
 	configureBlackLists()
+	go setupWebsockets()
 	go managementConsoleHandler()
 
 	lnaddr, err := net.ResolveTCPAddr("tcp", ":8080")
