@@ -4,6 +4,8 @@
 
 package main
 
+import "encoding/json"
+
 // hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
@@ -68,10 +70,12 @@ func (h *Hub) run() {
 
 func processCommand(command []byte) [] byte{
 	commandString := string(command)
+	res := handleManagementConsoleMessage(commandString)
+	json, err := json.Marshal(res)
 
-	if commandString == "block" {
-		return []byte("Here some lad just blocked sumin :" + commandString)
+	if err != nil {
+		return nil
 	}
+	return []byte(json)
 
-	return []byte("Some lad did something else  - was it you? : " +commandString)
 }

@@ -16,6 +16,8 @@ import (
 	"io/ioutil"
 	"flag"
 	"net/http"
+	"time"
+	"encoding/json"
 )
 
 const _DEFAULTLOG = "/var/log/go-proxy.log"
@@ -23,12 +25,22 @@ const _IP_BLACKLIST = "ip_blacklist.txt"
 const _DOMAIN_BLACKLIST = "domain_blacklist.txt"
 const _403_FILE = "403.html"
 
-var connections = make(chan string)
+var hub = newHub()
 
 var blacklist = struct {
 	sync.RWMutex
 	m map[string]bool
 }{m: make(map[string]bool)}
+
+type ConnectionMessage struct {
+	Src     string
+	Dst     string
+	Cached  bool
+	Https   bool
+	Blocked bool
+	Time    int32
+	MsgType string
+}
 
 func configureLogging() {
 	log.SetLevel(log.INFO)
@@ -98,7 +110,7 @@ func configureDomainBlacklist() {
 }
 
 func configureBlackLists() {
-
+	//TODO: Add stuff for IP blacklist etc
 	configureDomainBlacklist()
 }
 
@@ -243,13 +255,6 @@ func sendBlockedMessage(clientWriteBuffer *bufio.Writer, host string) {
 
 }
 
-func connectionPrinter() {
-	for {
-		connection := <-connections
-		log.Infof("Connection info: %v", connection)
-	}
-}
-
 func isHTTPMethod(header string) bool {
 	return strings.HasPrefix(header, "GET ") || strings.HasPrefix(header, "POST ") || strings.HasPrefix(header, "HEAD ") || strings.HasPrefix(header, "OPTIONS ")
 }
@@ -311,12 +316,15 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 	}
 
 	if isBlocked(host) {
+		sendConnectionInfoToConsole(conn.LocalAddr().String(), host, false, false, true)
+
 		sendBlockedMessage(connWriteBuffer, host)
 		return
 	}
 	oldResourceHeader := resourceHeader
 
 	data, exists := checkCacheAndRetrieve(oldResourceHeader)
+	sendConnectionInfoToConsole(conn.LocalAddr().String(), host, exists, false, false)
 	//Cache hit ding ding
 	if exists {
 		log.Infof("Cache HIT!!")
@@ -343,7 +351,7 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 		// create channels to synchronize
 		done := make(chan bool)
 		errs := make(chan error)
-		defer close(done)
+		//defer close(done)
 		defer close(errs)
 
 		go func() {
@@ -491,7 +499,7 @@ func checkCacheAndRetrieve(resourceName string) ([]byte, bool) {
 }
 
 func isCacheValue(value string) (bool) {
-	if value == "no-cache" || value == "max-age=0" || value == "private" {
+	if value == "no-cache" || value == "max-age=0" || value == "private" || value == "max-age=2" {
 		return false
 	}
 
@@ -555,6 +563,7 @@ func handleHTTPS(conn net.Conn, reader *bufio.Reader, writer *bufio.Writer) {
 	}
 
 	if isBlocked(host) {
+		sendConnectionInfoToConsole(conn.LocalAddr().String(), host, false, true, true)
 		sendBlockedMessage(writer, host)
 		return
 	}
@@ -564,6 +573,9 @@ func handleHTTPS(conn net.Conn, reader *bufio.Reader, writer *bufio.Writer) {
 		log.Debug("Error connecting to host", err)
 		return
 	}
+
+	sendConnectionInfoToConsole(conn.LocalAddr().String(), host, false, true, false)
+
 
 	remoteConnWriter := bufio.NewWriter(remoteConn)
 
@@ -579,62 +591,25 @@ func getDomainFromCommand(command string) string {
 	return r.Replace(command)
 }
 
-func handleManagementConsoleMessage(conn net.Conn) {
-	connReader := bufio.NewReader(conn)
-	connWriter := bufio.NewWriter(conn)
+func handleManagementConsoleMessage(command string) (ConnectionMessage) {
 
-	defer conn.Close()
+	line := strings.ToLower(command)
 
-	for {
-		line, err := connReader.ReadString('\n')
-
-		if err != nil {
-			break
-		}
-		line = strings.ToLower(line)
-
-		if strings.HasPrefix(line, "block ") {
-			domain := getDomainFromCommand(line)
-			addToBlacklist(domain)
-			connWriter.WriteString("Blocked: " + domain + "\n")
-			connWriter.Flush()
-		}
-
-		if strings.HasPrefix(line, "unblock ") {
-			domain := getDomainFromCommand(line)
-			removeFromBlacklist(domain)
-			connWriter.WriteString("Unblocked: " + domain + "\n")
-			connWriter.Flush()
-		}
-
+	if strings.HasPrefix(line, "block ") {
+		domain := getDomainFromCommand(line)
+		addToBlacklist(domain)
+		return ConnectionMessage{Dst: domain, MsgType:"block"}
 	}
+
+	if strings.HasPrefix(line, "unblock ") {
+		domain := getDomainFromCommand(line)
+		removeFromBlacklist(domain)
+		return ConnectionMessage{Dst: domain, MsgType:"unblock"}
+	}
+
+	return ConnectionMessage{}
+
 }
-
-func managementConsoleHandler() {
-	lnaddr, err := net.ResolveTCPAddr("tcp", ":8081")
-	if err != nil {
-		panic(err)
-	}
-
-	listener, err := net.ListenTCP("tcp", lnaddr)
-	if err != nil {
-		panic(err)
-	}
-	defer listener.Close()
-
-	log.Infof("Listening for connections on %v\n", listener.Addr())
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Infof("Error accepting connection: %v\n", err)
-			continue
-		}
-		log.Debugf("New Conn from %v", conn.RemoteAddr())
-		go handleManagementConsoleMessage(conn)
-	}
-}
-
 
 var addr = flag.String("addr", ":8081", "http service address")
 
@@ -650,9 +625,8 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "home.html")
 }
 
-func setupWebsockets() {
+func setupWebsockets(hub *Hub) {
 	flag.Parse()
-	hub := newHub()
 	go hub.run()
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
@@ -665,11 +639,25 @@ func setupWebsockets() {
 	}
 }
 
+func sendToConsole(msg []byte) {
+	hub.broadcast <- msg
+}
+
+func sendConnectionInfoToConsole(src string, dst string, cached bool, https bool, blocked bool) {
+	msg := ConnectionMessage{Src: src, Dst: dst, Cached: cached, Https: https, Blocked: blocked, Time: int32(time.Now().Unix()), MsgType: "connMsg"}
+	json, err := json.Marshal(msg)
+
+	if err != nil {
+		return
+	}
+	sendToConsole(json)
+}
+
 func main() {
 	configureLogging()
 	configureBlackLists()
-	go setupWebsockets()
-	go managementConsoleHandler()
+
+	go setupWebsockets(hub)
 
 	lnaddr, err := net.ResolveTCPAddr("tcp", ":8080")
 	if err != nil {
@@ -690,7 +678,6 @@ func main() {
 			log.Infof("Error accepting connection: %v\n", err)
 			continue
 		}
-		log.Debugf("New Conn from %v", conn.RemoteAddr())
 		go handleConnection(conn)
 	}
 }
