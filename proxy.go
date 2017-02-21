@@ -343,7 +343,7 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 		io.Copy(conn, reader)
 	} else {
 		//Cache MISS
-		log.Infof("Cache MISS!!")
+		log.Infof("Cache MISS!! - %v", oldResourceHeader)
 
 		remoteConn, err := connectToHost(host, port)
 		if err != nil {
@@ -425,18 +425,20 @@ func cacheData(data io.Reader, resourceName string) (bool, error) {
 
 		contentBuffer.WriteString(line)
 
-		if strings.HasPrefix(line, "HTTP/1.1: ") {
+/*		if strings.HasPrefix(line, "HTTP/1.1: ") {
 			if checkHTTPStatusCodeForCache(line) {
 				//TODO: Remove codes that don't cache
 			}
-		}
-		if strings.HasPrefix(line, "Cache-Control: ") {
+		}*/
+		lineLower := strings.ToLower(line)
+		if strings.HasPrefix(lineLower, "cache-control: ") {
 			cacheLine = line
 			shouldCache = checkCacheHeader(cacheLine)
 
 		}
 
 	}
+
 
 	//Copy remaining data after headers
 	for {
@@ -447,8 +449,9 @@ func cacheData(data io.Reader, resourceName string) (bool, error) {
 		contentBuffer.WriteByte(curByte)
 	}
 
-	writeCacheItem(resourceName, contentBuffer)
-
+	if shouldCache {
+		writeCacheItem(resourceName, contentBuffer)
+	}
 	return shouldCache, nil
 }
 func checkHTTPStatusCodeForCache(header string) bool {
@@ -482,13 +485,8 @@ func writeCacheItem(resourceName string, content bytes.Buffer) {
 		log.Error("Could not create file", err)
 	}
 
-	for {
-		line, err := content.ReadString('\n')
-		if err != nil {
-			break
-		}
-		f.WriteString(line)
-	}
+	contentReader := bufio.NewReader(&content)
+	io.Copy(f,contentReader)
 }
 
 //Check if file exists with required hash
@@ -498,7 +496,7 @@ func checkCacheHit(resourceName string) bool {
 	if _, err := os.Stat("cache/" + hash); os.IsNotExist(err) {
 		return false
 	}
-	log.Infof("Hit for : %v", hash)
+	log.Infof("Hit for : %v - %v",resourceName, hash)
 	return true
 }
 
