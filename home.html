@@ -5,7 +5,8 @@
     <script type="text/javascript">
         window.onload = function () {
             var conn;
-            var msg = document.getElementById("msg");
+            var blockmsg = document.getElementById("block_domain");
+            var unblockmsg = document.getElementById("unblock_domain");
             var log = document.getElementById("log");
 
             function appendLog(item) {
@@ -24,15 +25,27 @@
 			  }
 		}
 
-            document.getElementById("form").onsubmit = function () {
+            document.getElementById("block").onsubmit = function () {
                 if (!conn) {
                     return false;
                 }
-                if (!msg.value) {
+                if (!blockmsg.value) {
                     return false;
                 }
-                conn.send(msg.value);
-                msg.value = "";
+                conn.send("block " +blockmsg.value);
+                blockmsg.value = "";
+                return false;
+            };
+
+           document.getElementById("unblock").onsubmit = function (e) {
+                if (!conn) {
+                    return false;
+                }
+                if (!unblockmsg.value) {
+                    return false;
+                }
+                conn.send("unblock " +unblockmsg.value);
+                unblockmsg.value = "";
                 return false;
             };
 
@@ -91,21 +104,14 @@
             background: white;
             margin: 0;
             padding: 0.5em 0.5em 0.5em 0.5em;
-            position: absolute;
-            top: 0.5em;
-            left: 0.5em;
-            right: 0.5em;
-            bottom: 3em;
+            height: 100%;
             overflow: auto;
         }
 
-        #form {
+        form {
             padding: 0 0.5em 0 0.5em;
             margin: 0;
-            position: absolute;
-            bottom: 1em;
             left: 0px;
-            width: 100%;
             overflow: hidden;
         }
 
@@ -118,10 +124,25 @@
     </style>
 </head>
 <body>
-<div id="log"></div>
-<form id="form">
-    <input type="submit" value="Send" />
-    <input type="text" id="msg" size="64"/>
-</form>
+<table>
+	<tr>
+		<td>Date  isCached  isHttps  isBlocked  Source  Destination</td>
+	</tr>
+	<tr><td height="400"><div id="log"></div></td></tr>
+		<tr><td>
+				<form id="block">
+				    <input type="submit" value="Block" />
+				    <input type="text" id="block_domain" size="64"/>
+				</form>
+		</td>
+		<td>
+				<form id="unblock">
+				    <input type="submit" value="Unblock" />
+				    <input type="text" id="unblock_domain" size="64"/>
+				</form>
+		</td>
+	</tr>
+</table>
+
 </body>
 </html>

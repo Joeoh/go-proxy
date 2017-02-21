@@ -32,6 +32,7 @@ var blacklist = struct {
 	m map[string]bool
 }{m: make(map[string]bool)}
 
+//Struct used for messages to Management Console
 type ConnectionMessage struct {
 	Src     string
 	Dst     string
@@ -85,6 +86,7 @@ func isBlocked(domain string) bool {
 	return false
 }
 
+//Load blacklist files and add to hashmaps
 func configureDomainBlacklist() {
 	domainBlacklistFile, err := os.Open(_DOMAIN_BLACKLIST)
 	bufferedReader := bufio.NewReader(domainBlacklistFile)
@@ -130,6 +132,7 @@ func sendSSLTunnellingResponse(clientWriteBuffer *bufio.Writer) (err error) {
 	return nil
 }
 
+//Extract Host and Port from Host: Header
 func getHostAndPortFromHostHeader(hostHeader string) (string, int, error) {
 	port := 80
 	host := ""
@@ -151,7 +154,7 @@ func getHostAndPortFromHostHeader(hostHeader string) (string, int, error) {
 
 	return host, port, nil
 }
-
+//Extract contentLength from Header
 func getContentLengthFromHeader(header string) (int, error) {
 	r := strings.NewReplacer("Content-Length: ", "", "\r\n", "")
 	lenString := r.Replace(header)
@@ -162,7 +165,7 @@ func getContentLengthFromHeader(header string) (int, error) {
 	return contentLength, nil
 
 }
-
+//Get the relative resource path. ie remove https:// / http:// from the string so the remote server understands
 func getResourceFromHeader(header string, host string, port int) (string) {
 	portString := ":" + strconv.Itoa(port)
 	r := strings.NewReplacer("https://"+host, "", "http://"+host, "", portString, "")
@@ -170,6 +173,7 @@ func getResourceFromHeader(header string, host string, port int) (string) {
 	return resource
 }
 
+//Return a connection to the host and port
 func connectToHost(host string, port int) (net.Conn, error) {
 	remoteAddrs, err := net.LookupIP(host)
 
@@ -197,7 +201,7 @@ func checkIsHttps(clientReadBuffer *bufio.Reader) (isHttps bool, err error) {
 	isHttps = strings.HasPrefix(strings.ToUpper(string(lookahead)), "CONNECT")
 	return
 }
-
+//Alter the headers and then send them on
 func sendClientHeadersToHost(headers bytes.Buffer, hostBuffer *bufio.Writer, resourceHeader string) (err error) {
 
 	for {
@@ -224,6 +228,7 @@ func sendClientHeadersToHost(headers bytes.Buffer, hostBuffer *bufio.Writer, res
 	return
 }
 
+//Response sent to user if site is blocked. Has template backed file or failing that a dynamic string is returned
 func write403Contents(clientWriteBuffer *bufio.Writer, host string) {
 	defer clientWriteBuffer.Flush()
 	domainBlacklistFile, err := os.Open(_403_FILE)
@@ -234,6 +239,8 @@ func write403Contents(clientWriteBuffer *bufio.Writer, host string) {
 		clientWriteBuffer.WriteString(forbiddenString)
 		return
 	}
+
+	// Basic templating - replace occurances of strings and write to clientBuffer
 	r := strings.NewReplacer("%HOST%", host)
 
 	for {
@@ -254,12 +261,12 @@ func sendBlockedMessage(clientWriteBuffer *bufio.Writer, host string) {
 	clientWriteBuffer.Flush()
 
 }
-
+//Checks if a header string has a HTTP Method in it
 func isHTTPMethod(header string) bool {
 	return strings.HasPrefix(header, "GET ") || strings.HasPrefix(header, "POST ") || strings.HasPrefix(header, "HEAD ") || strings.HasPrefix(header, "OPTIONS ")
 }
 
-//Function for testing reading from a non closing connection with  multiple conns
+//Procedure for HTTP Connections
 func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bufio.Writer) {
 	defer conn.Close()
 	var contentBuffer bytes.Buffer
@@ -270,6 +277,8 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 	hasBody := false
 	contentLength := 0
 	resourceHeader := ""
+
+	//Process entire set of headers so we have Host and Get/Post etc so we can remove the host from Get
 	for {
 		curString, err := connReadBuffer.ReadString('\n')
 		if err != nil {
@@ -311,6 +320,7 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 		contentBuffer.WriteString(curString)
 	}
 
+	//We need to method line to do anything
 	if !seenResourceLine {
 		return
 	}
@@ -321,11 +331,12 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 		sendBlockedMessage(connWriteBuffer, host)
 		return
 	}
+	//Backup to use for cache check - need full string with host for uniqueness
 	oldResourceHeader := resourceHeader
-
 	data, exists := checkCacheAndRetrieve(oldResourceHeader)
+	//Log to MGMT console
 	sendConnectionInfoToConsole(conn.LocalAddr().String(), host, exists, false, false)
-	//Cache hit ding ding
+
 	if exists {
 		log.Infof("Cache HIT!!")
 		reader := bytes.NewReader(data)
@@ -344,6 +355,10 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 		resourceHeader = getResourceFromHeader(resourceHeader, host, port)
 		sendClientHeadersToHost(contentBuffer, remoteConnWriter, resourceHeader)
 
+
+		/*Code below splits the servers response into two buffers so that we can read it twice concurrently
+		  One is sent to the client and the other is checked if it is cacheable and writes it to disk
+		*/
 		//The below code was mostly taken from here http://rodaine.com/2015/04/async-split-io-reader-in-golang/
 		pr, pw := io.Pipe()
 		tr := io.TeeReader(remoteConn, pw)
@@ -393,7 +408,7 @@ func handleHTTP(conn net.Conn, connReadBuffer *bufio.Reader, connWriteBuffer *bu
 	}
 }
 
-//Determine if the given data should be cached andCache the given data- returns a bool saying if it was cached or not
+//Determine if the given data should be cached and Cache the given data- returns a bool saying if it was cached or not
 func cacheData(data io.Reader, resourceName string) (bool, error) {
 	br := bufio.NewReader(data)
 	var contentBuffer bytes.Buffer
@@ -441,11 +456,13 @@ func checkHTTPStatusCodeForCache(header string) bool {
 	codeString := r.Replace(header)
 
 	if strings.HasPrefix(codeString, "200") {
-
+		return true
 	}
 
 	return false
 }
+
+
 
 func getMD5Hash(text string) string {
 	hasher := md5.New()
@@ -453,6 +470,8 @@ func getMD5Hash(text string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
+//Cache is based on a file with a name that is the MD5 of the request eg GET http://www.tcd.ie/index.html HTTP 1.1
+// Could have cleaned out the start and end but no need
 func writeCacheItem(resourceName string, content bytes.Buffer) {
 	resourceName = getMD5Hash(resourceName)
 	log.Debugf("MD5: %v", resourceName)
@@ -472,6 +491,7 @@ func writeCacheItem(resourceName string, content bytes.Buffer) {
 	}
 }
 
+//Check if file exists with required hash
 func checkCacheHit(resourceName string) bool {
 	hash := getMD5Hash(resourceName)
 
@@ -498,6 +518,8 @@ func checkCacheAndRetrieve(resourceName string) ([]byte, bool) {
 	return b, true
 }
 
+
+//Header values not to cache
 func isCacheValue(value string) (bool) {
 	if value == "no-cache" || value == "max-age=0" || value == "private" || value == "max-age=2" {
 		return false
@@ -529,7 +551,7 @@ func checkCacheHeader(header string) (bool) {
 
 	return true
 }
-
+// Base area where conn is checked if is requesting to open HTTPS tunnel
 func handleConnection(conn net.Conn) {
 	connectionReader := bufio.NewReader(conn)
 	connectionWriter := bufio.NewWriter(conn)
@@ -544,6 +566,11 @@ func handleConnection(conn net.Conn) {
 		handleHTTP(conn, connectionReader, connectionWriter)
 	}
 }
+
+//Procedure for HTTPS - Very simple compared to HTTP
+// Open remote conn, send local client the message to indicate tunnel is ready and then concurrently copy from
+// client to server and vice versa
+// https://tools.ietf.org/html/draft-luotonen-ssl-tunneling-03
 func handleHTTPS(conn net.Conn, reader *bufio.Reader, writer *bufio.Writer) {
 	var host string
 	var port int
@@ -586,11 +613,13 @@ func handleHTTPS(conn net.Conn, reader *bufio.Reader, writer *bufio.Writer) {
 	go io.Copy(conn, remoteConn)
 }
 
+//Pull domain to be blocked/unblocked out of command
 func getDomainFromCommand(command string) string {
 	r := strings.NewReplacer("unblock ", "", "block ", "", "\r\n", "")
 	return r.Replace(command)
 }
 
+// Process available commands in MGMT console
 func handleManagementConsoleMessage(command string) (ConnectionMessage) {
 
 	line := strings.ToLower(command)
@@ -613,6 +642,10 @@ func handleManagementConsoleMessage(command string) (ConnectionMessage) {
 
 var addr = flag.String("addr", ":8081", "http service address")
 
+//Serves required files for MGMT console
+//Most of this websocket code is taken from the example for the gorilla/websocket library
+//Altered to add another channel for commands
+//All functionality I needed was in the example
 func serveHome(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.Error(w, "Not found", 404)
@@ -639,10 +672,11 @@ func setupWebsockets(hub *Hub) {
 	}
 }
 
+//write bytes to broadcast channel - this is caught in the Hub and sent to all clients(Management Console Clients)
 func sendToConsole(msg []byte) {
 	hub.broadcast <- msg
 }
-
+//Build object and convert to json to write broadcast channel
 func sendConnectionInfoToConsole(src string, dst string, cached bool, https bool, blocked bool) {
 	msg := ConnectionMessage{Src: src, Dst: dst, Cached: cached, Https: https, Blocked: blocked, Time: int32(time.Now().Unix()), MsgType: "connMsg"}
 	json, err := json.Marshal(msg)
