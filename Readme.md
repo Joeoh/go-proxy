@@ -8,3 +8,5 @@ Features:
 - Terrible, Terrible Go code (first time)
 - Basic Caching (No expiration)
 
+
+If you come across this looking for a production use Proxy - Sorry.
